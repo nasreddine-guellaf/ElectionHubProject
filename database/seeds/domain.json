@@ -1,0 +1,22 @@
+{
+  "election": {
+    "id": "10000000-0000-4000-8000-000000000001",
+    "code": "DEMO-SCRUTIN-2026", "name": "Scrutin fictif des Trois Horizons",
+    "start_date": "2026-11-01", "end_date": "2026-11-01",
+    "enforce_ballot_equation": true
+  },
+  "candidates": [
+    {"id": "20000000-0000-4000-8000-000000000001", "code": "DEMO-LISTE-A", "name": "Liste fictive Aurore"},
+    {"id": "20000000-0000-4000-8000-000000000002", "code": "DEMO-LISTE-B", "name": "Liste fictive Horizon"},
+    {"id": "20000000-0000-4000-8000-000000000003", "code": "DEMO-LISTE-C", "name": "Liste fictive Clairière"}
+  ],
+  "users": [
+    {"id": "30000000-0000-4000-8000-000000000001", "code": "DEMO-AGENT-01", "display_name": "Agent fictif 01", "role": "AGENT"},
+    {"id": "30000000-0000-4000-8000-000000000002", "code": "DEMO-VALIDATOR-01", "display_name": "Validateur fictif 01", "role": "VALIDATOR"},
+    {"id": "30000000-0000-4000-8000-000000000003", "code": "DEMO-ADMIN-01", "display_name": "Administrateur fictif 01", "role": "ADMIN"}
+  ],
+  "reports": [
+    {"polling_station_id": "00000000-0000-4000-8000-000000000001", "votes": [210, 170, 100], "blank_votes": 12, "invalid_votes": 8, "submit": true},
+    {"polling_station_id": "00000000-0000-4000-8000-000000000002", "votes": [120, 90, 70], "blank_votes": 10, "invalid_votes": 5, "submit": false}
+  ]
+}

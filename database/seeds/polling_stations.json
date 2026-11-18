@@ -1,0 +1,5 @@
+[
+  {"id": "00000000-0000-4000-8000-000000000001", "code": "DEMO-BV-001", "name": "Bureau fictif — École des Nuages", "registered_voters": 600},
+  {"id": "00000000-0000-4000-8000-000000000002", "code": "DEMO-BV-002", "name": "Bureau fictif — Maison des Horizons", "registered_voters": 450},
+  {"id": "00000000-0000-4000-8000-000000000003", "code": "DEMO-BV-003", "name": "Bureau fictif — Centre des Étoiles", "registered_voters": 720}
+]
