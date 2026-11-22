@@ -1,11 +1,11 @@
-# ElectionHub — Domaine électoral local, phase 2
+# ElectionHub — Application web locale, phase 4
 
 Plateforme académique de consultation et consolidation des résultats par bureau de vote.
 **Aucun vote électronique. Données de démonstration entièrement fictives.**
 
-Le socle FastAPI/PostgreSQL de phase 1 est conservé. La phase 2 ajoute les scrutins,
-candidats, affectations, PV révisables, résultats structurés et contrôles métier.
-Les nouvelles API sont **désactivées par défaut**, avec activation locale explicite par clé.
+Le socle FastAPI/PostgreSQL, le domaine électoral et les sessions par rôle sont conservés.
+La phase 4 ajoute une application React unique pour le portail citoyen/agent et le
+back-office administrateur/validateur. Les API métier exigent une **session Bearer**.
 Aucune ressource AWS, Azure, GCP ou Cloudflare n'est déployée.
 
 ## Prérequis
@@ -13,7 +13,7 @@ Aucune ressource AWS, Azure, GCP ou Cloudflare n'est déployée.
 - Docker Desktop démarré en mode conteneurs Linux (WSL 2 sous Windows), Compose v2.
 - Python 3.11 et `pip` pour les commandes locales. `uv` est une alternative facultative.
 - Accès réseau initial à Docker Hub et PyPI pour télécharger les dépendances.
-- Ports locaux 5433 (PostgreSQL) et 8000 (API) disponibles.
+- Ports locaux 5433 (PostgreSQL), 8000 (API) et 3000 (application web) disponibles.
 
 PowerShell 7 est recommandé pour l'affichage Unicode. Windows PowerShell 5.1 peut
 mal afficher les accents des réponses JSON avec `Invoke-RestMethod` ; les données
@@ -40,15 +40,17 @@ Ne pas copier ni publier son contenu. `.env.example` est un modèle sans secret 
 Compose démarre PostgreSQL, exécute `alembic upgrade head`, puis attend que l'API soit saine.
 Le seed est volontairement une commande distincte ; l'exécuter à nouveau ne crée pas de doublon.
 
-Ouvrir la [documentation interactive locale](http://127.0.0.1:8000/docs).
+Ouvrir [l'application web locale](http://127.0.0.1:3000). La documentation interactive
+de l'API reste disponible sur [le port 8000](http://127.0.0.1:8000/docs).
 La réponse `/health` doit contenir `status: ok`, `database: ok`,
-`schema_version: 0002_election_domain`. La liste doit contenir `total: 3` et
+`schema_version: 0003_authentication`. La liste doit contenir `total: 3` et
 `data_kind: synthetic` après chargement initial.
 
 Le seed métier ajoute un scrutin fictif, trois listes, trois références utilisateur,
 trois affectations, un PV soumis et un brouillon renseigné. Il conserve les dossiers existants.
 Le troisième bureau reste disponible pour un nouvel essai. Aucun résultat n'est approuvé.
-Voir [l'activation et le parcours API phase 2](docs/api/phase-2.md).
+Voir [les comptes, permissions et parcours API phase 3](docs/api/phase-3.md).
+Préparer les comptes sur l'hôte avec les commandes suivantes avant de se connecter.
 
 ## Développement et tests sous PowerShell
 
@@ -62,9 +64,34 @@ Set-Location backend
 ..\.venv\Scripts\python.exe -m alembic check
 ..\.venv\Scripts\python.exe -m app.seed
 ..\.venv\Scripts\python.exe -m app.seed_domain
+..\.venv\Scripts\python.exe -m app.bootstrap_auth
 ..\.venv\Scripts\python.exe -m pytest -q
 ..\.venv\Scripts\python.exe -m ruff check .
 ..\.venv\Scripts\python.exe -m ruff format --check .
+Set-Location ..
+```
+
+Le bootstrap crée `demo-agent`, `demo-admin` et `demo-validator`, avec des mots de passe
+aléatoires dans `.local/demo-credentials.json` (ignoré par Git et Docker). Il ne réinitialise
+jamais un compte existant. Ce fichier contient les secrets initiaux : ne pas le partager.
+Se connecter par `POST /api/v1/auth/login`, puis utiliser le jeton dans **Authorize** sur
+`/docs`, ou suivre [l'exemple PowerShell](docs/api/phase-3.md#connexion-et-déconnexion-powershell).
+Le citoyen `DEMO-CIN-0001` est fictif ; son OTP est **désactivé par défaut** et ne passe
+que par un simulateur SMS local lorsqu'il est activé explicitement.
+
+Le conteneur `web` sert le build React avec Nginx sur le port 3000 et transmet `/api/*`
+au backend. Les liens profonds sont pris en charge, le système de fichiers est en lecture
+seule et des en-têtes de sécurité encadrent le navigateur. Voir le
+[guide frontend phase 4](docs/api/phase-4.md).
+
+Pour développer l'interface avec rechargement automatique, laisser l'API sur le port 8000 :
+
+```powershell
+Set-Location frontend
+npm.cmd install
+npm.cmd run dev
+npm.cmd test
+npm.cmd run build
 Set-Location ..
 ```
 
@@ -78,7 +105,7 @@ Pour lancer l'API sur l'hôte avec rechargement automatique, arrêter seulement 
 ```powershell
 docker compose stop api
 Set-Location backend
-..\.venv\Scripts\python.exe -m uvicorn app.main:create_app --factory --reload --host 127.0.0.1 --port 8000
+..\.venv\Scripts\python.exe -m uvicorn app.main:create_app --factory --reload --host 127.0.0.1 --port 8000 --no-proxy-headers
 ```
 
 La configuration charge `.env` à la racine, indépendamment du répertoire courant.
@@ -98,13 +125,19 @@ docker compose exec api python -m app.seed
 docker compose exec api python -m app.seed_domain
 curl --fail http://127.0.0.1:8000/health
 curl --fail 'http://127.0.0.1:8000/api/v1/polling-stations?limit=2&offset=0'
+curl --fail http://127.0.0.1:3000/
 python3.11 -m venv .venv
 .venv/bin/python -m pip install -r backend/requirements-dev.lock
 cd backend
 ../.venv/bin/python -m alembic check
+../.venv/bin/python -m app.bootstrap_auth
 ../.venv/bin/python -m pytest -q
 ../.venv/bin/python -m ruff check .
 ../.venv/bin/python -m ruff format --check .
+cd ../frontend
+npm install
+npm test
+npm run build
 ```
 
 Ces instructions WSL sont fournies pour reproduction ; voir le rapport pour les
@@ -121,35 +154,39 @@ plateformes effectivement vérifiées. Aucune distribution WSL utilisateur n'est
 
 Ces lectures héritées de phase 1 ne nécessitent pas de compte et sont limitées à
 l'environnement local fictif. Les nouvelles routes `/elections`, `/candidates`,
-`/assignments`, `/reports` et leurs sous-routes exigent le mécanisme de développement.
-L'authentification et les droits métier complets appartiennent à la phase 3.
+`/assignments`, `/reports` et leurs sous-routes exigent une session et un rôle autorisé.
+ADMIN gère les référentiels et comptes ; AGENT saisit ses PV affectés ; VALIDATOR examine
+et décide. ADMIN ne peut ni soumettre ni approuver un PV. Le citoyen authentifié accède
+à son bureau via une route dédiée. Voir la [matrice complète](docs/api/phase-3.md#matrice-des-droits).
 
 ## Organisation
 
 ```text
 backend/
   app/                 Configuration, modèles, services métier, API, seeds
-  alembic/             Migrations additives des phases 1 et 2
+  alembic/             Migrations additives des phases 1 à 3
   tests/               Tests API, PostgreSQL, migrations et configuration
   pyproject.toml       Dépendances directes et outils
   requirements*.lock   Versions exactes résolues pour ce jalon
   Dockerfile           Image API sans dépendances de test, utilisateur non root
+frontend/              Application React unique, tests fonctionnels et image Nginx
 database/seeds/        Bureaux et domaine électoral fictifs JSON
-scripts/              Initialisation, activation explicite, vérification HTTP
+scripts/              Initialisation, simulation OTP optionnelle, vérification HTTP
 docs/architecture/    Transcription V2 et sept flux
 docs/decisions/       Choix techniques et limites
 docs/testing/         Résultats des vérifications exécutées
-docker-compose.yml    PostgreSQL, migration à exécution unique, API
+docker-compose.yml    PostgreSQL, migration, API et application web
 ```
 
-Le frontend React et les configurations cloud seront ajoutés aux phases concernées.
-Le portail et le back-office cibles partageront **un seul Azure App Service**.
+Le portail et le back-office forment une seule application React et partageront **un seul
+Azure App Service** lors de la phase 7. Les configurations cloud restent planifiées.
 
 ## Exploitation locale et dépannage
 
 ```powershell
 docker compose ps -a
 docker compose logs --tail 50 api migrate db
+docker compose logs --tail 50 web
 docker compose stop
 docker compose start db api
 ```
@@ -168,6 +205,7 @@ docker compose start db api
 
 ## Documents et prochain jalon
 
+- [Feuille de route complète et état des 10 phases](docs/ROADMAP.md)
 - [Architecture V2 et hypothèses](docs/architecture/v2.md)
 - [Décisions du socle local](docs/decisions/0001-socle-local.md)
 - [Vérifications de la phase 1](docs/testing/phase-1.md)
@@ -175,24 +213,32 @@ docker compose start db api
 - [Modèle relationnel](docs/database/phase-2.md)
 - [API phase 2 et exemples](docs/api/phase-2.md)
 - [Vérifications de la phase 2](docs/testing/phase-2.md)
+- [Choix d'authentification et RBAC](docs/decisions/0003-authentification.md)
+- [Schéma de sécurité phase 3](docs/database/phase-3.md)
+- [API et permissions phase 3](docs/api/phase-3.md)
+- [Vérifications de la phase 3](docs/testing/phase-3.md)
+- [Application web et parcours phase 4](docs/api/phase-4.md)
+- [Vérifications de la phase 4](docs/testing/phase-4.md)
 
-**IMPLÉMENTÉ :** modèle relationnel, affectations, saisie complète des résultats,
-transition DRAFT → SUBMITTED, corrections traçables, protection contre doublons et conflits.
-**TESTÉ :** PostgreSQL réel, migrations réversibles et préservation du référentiel,
-API métier, erreurs, concurrence et parcours HTTP local (voir rapport pour les résultats).
-**PLANIFIÉ :** authentification et RBAC en phase 3, validation humaine autorisée,
-documents S3/Lambda, analytics, publication et interconnexions cloud.
+**IMPLÉMENTÉ :** application React responsive avec navigation par rôle, tableaux de bord,
+saisie des PV, validation humaine, comptes, scrutins, affectations, bureaux, audit et
+consultation citoyenne. Le backend reste l'autorité pour chaque permission.
+**TESTÉ :** build de production, tests fonctionnels frontend, 98 tests backend, images
+Docker, Nginx, liens profonds, proxy API et connexions par rôle.
+**PLANIFIÉ :** documents et services AWS en phase 5,
+analytics, publication et interconnexions cloud aux phases suivantes.
 
-Pour vérifier les routes activées sans modifier `.env`, après seed et depuis la racine :
+Pour vérifier les sessions sans modifier `.env`, après seed et bootstrap, depuis la racine :
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/smoke_phase2.py
+.\.venv\Scripts\python.exe scripts/smoke_phase3.py
 ```
 
-Ce script lance Uvicorn sur un port local éphémère avec une clé temporaire, vérifie
-les lectures protégées et le CRUD d'un scrutin fictif temporaire, puis supprime ce scrutin
-et arrête le serveur. Sous WSL : `.venv/bin/python scripts/smoke_phase2.py`.
+Ce script utilise les identifiants initiaux du fichier local, lance Uvicorn sur un port
+éphémère, vérifie les trois rôles et le CRUD d'un scrutin fictif temporaire, supprime ce
+scrutin, révoque ses sessions et arrête le serveur. Des événements d'audit sont conservés.
+Sous WSL : `.venv/bin/python scripts/smoke_phase3.py`. Les limites de connexion s'appliquent
+aussi au script ; attendre leur expiration après plusieurs exécutions rapprochées.
 
-Prochain jalon : comptes authentifiés, hachage des mots de passe, RBAC côté serveur,
-portées d'affectation et décisions humaines auditées. Ne pas exposer le mécanisme de
-développement comme authentification de production.
+Prochain jalon : RDS, S3, Lambda PV, Lambda OTP et SNS en phase 5, après validation des
+comptes AWS, de la région et du budget. Aucun déploiement cloud ni SMS réel à ce stade.

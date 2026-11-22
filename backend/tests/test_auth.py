@@ -1,3 +1,6 @@
+import json
+import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from uuid import UUID, uuid4
@@ -9,10 +12,11 @@ from sqlalchemy.orm import Session
 
 from app.auth_models import Account, AuthAudit, AuthSession, OtpChallenge, RateLimit
 from app.bootstrap_auth import DEMO_USERS, seed_citizen
-from app.config import Settings
+from app.config import ROOT, Settings
 from app.domain_models import AgentAssignment, UserReference, UserRole
 from app.main import create_app
 from app.security import digest, issue_session, now, verify_password
+from app.seed_domain import seed_domain
 from tests.test_domain import (  # réutilise le jeu métier, pas de bypass des dépendances RBAC
     ACTOR,
     ELECTION,
@@ -24,6 +28,8 @@ from tests.test_domain import (  # réutilise le jeu métier, pas de bypass des 
     payload,
     submitted,
 )
+from tests.test_domain import domain_client as domain_client
+from tests.test_domain import domain_engine as domain_engine
 
 
 def login(client, username="demo-agent", password=TEST_PASSWORD):
@@ -32,6 +38,56 @@ def login(client, username="demo-agent", password=TEST_PASSWORD):
 
 def use_token(client, token):
     client.headers["Authorization"] = "Bearer " + token
+
+
+def test_bootstrap_standalone_import_and_idempotence(domain_engine, tmp_path, monkeypatch):
+    from app import bootstrap_auth
+
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import app.bootstrap_auth; from app.database import Base; "
+            "assert 'polling_stations' in Base.metadata.tables",
+        ],
+        cwd=ROOT / "backend",
+        check=True,
+        capture_output=True,
+    )
+    monkeypatch.setattr(bootstrap_auth, "ROOT", tmp_path)
+    monkeypatch.setattr(bootstrap_auth, "create_db_engine", lambda settings: domain_engine)
+    with Session(domain_engine) as session:
+        before = dict(session.execute(select(Account.user_id, Account.password_hash)).all())
+    bootstrap_auth.main()
+    bootstrap_auth.main()
+    with Session(domain_engine) as session:
+        after = dict(session.execute(select(Account.user_id, Account.password_hash)).all())
+    assert before == after
+    assert not (tmp_path / ".local/demo-credentials.json").exists()
+
+
+def test_bootstrap_creates_accounts_without_exposing_passwords(
+    db_engine, tmp_path, monkeypatch, capsys
+):
+    from app import bootstrap_auth
+
+    with Session(db_engine) as session, session.begin():
+        seed_domain(session, include_reports=False)
+    monkeypatch.setattr(bootstrap_auth, "ROOT", tmp_path)
+    monkeypatch.setattr(bootstrap_auth, "create_db_engine", lambda settings: db_engine)
+    bootstrap_auth.main()
+    output = tmp_path / ".local/demo-credentials.json"
+    original = output.read_text(encoding="utf-8")
+    credentials = json.loads(original)
+    bootstrap_auth.main()
+    assert output.read_text(encoding="utf-8") == original
+    assert set(credentials) == set(DEMO_USERS)
+    captured = capsys.readouterr()
+    with Session(db_engine) as session:
+        for username, user_id in DEMO_USERS.items():
+            password = credentials[username]
+            assert password not in captured.out + captured.err
+            assert verify_password(session.get(Account, user_id).password_hash, password)
 
 
 def test_login_session_hash_logout_and_no_secrets(domain_client, domain_engine):

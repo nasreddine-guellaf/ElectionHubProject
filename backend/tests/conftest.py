@@ -4,6 +4,7 @@ import pytest
 from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from alembic import command
@@ -25,8 +26,14 @@ def db_engine():
     admin_engine = create_db_engine(settings)
     # Identifiant généré, jamais fourni par l'utilisateur. Aucun DROP de base existante.
     schema = f"test_{uuid.uuid4().hex}"
-    with admin_engine.begin() as connection:
-        connection.execute(text(f'CREATE SCHEMA "{schema}"'))
+    try:
+        with admin_engine.begin() as connection:
+            connection.execute(text(f'CREATE SCHEMA "{schema}"'))
+    except SQLAlchemyError:
+        admin_engine.dispose()
+        pytest.fail(
+            "PostgreSQL indisponible : démarrer docker compose up -d --wait db.", pytrace=False
+        )
     engine = create_engine(
         settings.database_url,
         connect_args={"options": f"-csearch_path={schema}", "connect_timeout": 3},

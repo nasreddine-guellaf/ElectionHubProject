@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.auth_api import router as auth_router
+from app.auth_models import Account
 from app.config import Settings
 from app.database import create_db_engine, get_session
 from app.domain_api import router as domain_router
@@ -19,6 +20,7 @@ from app.models import PollingStation
 from app.otp_api import LocalSmsSender
 from app.otp_api import router as otp_router
 from app.schemas import HealthRead, PollingStationPage, PollingStationRead
+from app.station_api import router as station_router
 from app.validation_api import router as validation_router
 
 logger = logging.getLogger(__name__)
@@ -39,7 +41,8 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app = FastAPI(
         title="ElectionHub — Démonstration locale",
         description="Données fictives uniquement. Aucun vote électronique. "
-        "Phase 3 : sessions expirantes, rôles serveur et validation humaine. SMS simulés uniquement.",
+        "Phase 3 : sessions expirantes, rôles serveur et validation humaine. "
+        "SMS simulés uniquement.",
         version="0.3.0",
         lifespan=lifespan,
     )
@@ -50,6 +53,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.include_router(auth_router)
     app.include_router(otp_router)
     app.include_router(validation_router)
+    app.include_router(station_router)
 
     @app.middleware("http")
     async def no_cache(request: Request, call_next):
@@ -85,6 +89,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         # Vérifie aussi que la table métier est lisible.
         session.execute(select(PollingStation.id).limit(1))
         session.execute(select(Report.id).limit(1))
+        session.execute(select(Account.user_id).limit(1))
         return HealthRead(schema_version=version, environment=settings.app_env)
 
     @app.get("/api/v1/polling-stations", response_model=PollingStationPage, tags=["Bureaux"])

@@ -6,9 +6,10 @@ x-backend: &backend
     dockerfile: backend/Dockerfile
   environment:
     APP_ENV: local
-    DEV_API_ENABLED: ${DEV_API_ENABLED:-false}
-    DEV_API_KEY: ${DEV_API_KEY:-}
-    DEV_ACTOR_ID: ${DEV_ACTOR_ID:-30000000-0000-4000-8000-000000000001}
+    SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-3600}
+    CITIZEN_OTP_ENABLED: ${CITIZEN_OTP_ENABLED:-false}
+    OTP_HMAC_KEY: ${OTP_HMAC_KEY:-}
+    MOCK_SMS_DIRECTORY: /tmp/electionhub-sms
     POSTGRES_HOST: db
     POSTGRES_PORT: 5432
     POSTGRES_USER: ${POSTGRES_USER:-electionhub}
@@ -50,6 +51,23 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
       interval: 5s
       timeout: 5s
+      retries: 12
+
+  web:
+    build:
+      context: ./frontend
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
       retries: 12
 
 volumes:

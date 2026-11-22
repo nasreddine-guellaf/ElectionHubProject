@@ -1,5 +1,9 @@
 # API locale ElectionHub — Phase 2
 
+> Document historique. Depuis la phase 3, la clé de développement et son activation
+> sont supprimées. Utiliser les [sessions Bearer et permissions phase 3](phase-3.md).
+> Les exemples de données métier restent utiles, avec les nouveaux en-têtes d'authentification.
+
 **IMPLÉMENTÉ** : routes ci-dessous, schémas Pydantic, documentation `/docs` et `/openapi.json`.
 Toutes les nouvelles routes exigent la clé de développement. Les anciennes routes GET
 `/health` et `/api/v1/polling-stations[/<uuid>]` conservent leur accès local sans clé.

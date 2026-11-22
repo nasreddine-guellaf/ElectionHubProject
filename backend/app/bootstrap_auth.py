@@ -11,6 +11,7 @@ from app.auth_models import Account, Citizen
 from app.config import ROOT, Settings
 from app.database import create_db_engine
 from app.domain_models import UserReference, UserRole
+from app.models import PollingStation
 from app.security import audit, hasher
 
 DEMO_USERS = {
@@ -22,6 +23,9 @@ CITIZEN_ID = UUID("30000000-0000-4000-8000-000000000004")
 
 
 def seed_citizen(session):
+    station_id = UUID("00000000-0000-4000-8000-000000000001")
+    if session.get(PollingStation, station_id) is None:
+        raise RuntimeError("Exécutez d'abord python -m app.seed_domain.")
     if session.get(UserReference, CITIZEN_ID) is None:
         session.add(
             UserReference(id=CITIZEN_ID, code="DEMO-CITIZEN-01", display_name="Citoyen fictif 01")
@@ -33,7 +37,7 @@ def seed_citizen(session):
             Citizen(
                 user_id=CITIZEN_ID,
                 synthetic_cin="DEMO-CIN-0001",
-                polling_station_id=UUID("00000000-0000-4000-8000-000000000001"),
+                polling_station_id=station_id,
                 mock_recipient="mock://DEMO-CITIZEN-01",
             )
         )
@@ -66,7 +70,8 @@ def main():
                 output.write_text(json.dumps(credentials, indent=2) + "\n", encoding="utf-8")
                 output.chmod(0o600)
         print(
-            "Comptes fictifs préparés. Secrets initiaux dans .local/demo-credentials.json ; aucun reset."
+            "Comptes fictifs préparés. Secrets initiaux dans .local/demo-credentials.json ; "
+            "aucun reset."
         )
     finally:
         engine.dispose()

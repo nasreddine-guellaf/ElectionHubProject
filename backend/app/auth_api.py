@@ -142,9 +142,8 @@ def update_account(user_id: UUID, data: AccountUpdate, actor: Admin, session: Db
     # Sérialise les changements de rôles, y compris deux rétrogradations simultanées.
     session.execute(text("SELECT pg_advisory_xact_lock(74209103)"))
     # Le rôle appelant est revérifié après l'attente du verrou.
-    if (
-        effective_role(session, actor.id) != "ADMIN"
-        or not require(session, UserReference, actor.id).active
+    if effective_role(session, actor.id) != "ADMIN" or not session.scalar(
+        select(UserReference.active).where(UserReference.id == actor.id)
     ):
         raise unauthenticated()
     account = session.scalar(select(Account).where(Account.user_id == user_id).with_for_update())

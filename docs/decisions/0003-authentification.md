@@ -1,6 +1,7 @@
 # ADR 0003 — Authentification et autorisations, phase 3
 
-Date : 18 novembre 2026. Implémentation locale, sans infrastructure cloud.
+Date : 18 novembre 2026. Finalisation : 21 novembre 2026.
+Implémentation locale, sans infrastructure cloud.
 
 - La clé `X-Development-Key` est retirée, sans voie de contournement ni secours.
 - Mots de passe Argon2id (64 MiB, 3 itérations, parallélisme 1), sel aléatoire fourni
