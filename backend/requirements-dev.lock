@@ -26,6 +26,15 @@ argon2-cffi-bindings==26.2.0
     # via
     #   -c backend/requirements.lock
     #   argon2-cffi
+boto3==1.44.9
+    # via
+    #   -c backend/requirements.lock
+    #   electionhub-backend (backend/pyproject.toml)
+botocore==1.44.9
+    # via
+    #   -c backend/requirements.lock
+    #   boto3
+    #   s3transfer
 certifi==2026.10.23
     # via
     #   httpcore
@@ -64,6 +73,11 @@ idna==3.20
     #   httpx
 iniconfig==2.3.1
     # via pytest
+jmespath==1.1.0
+    # via
+    #   -c backend/requirements.lock
+    #   boto3
+    #   botocore
 mako==1.4.3
     # via
     #   -c backend/requirements.lock
@@ -109,12 +123,28 @@ pygments==2.21.0
     # via pytest
 pytest==9.2.0
     # via electionhub-backend (backend/pyproject.toml)
+python-dateutil==2.9.0.post0
+    # via
+    #   -c backend/requirements.lock
+    #   botocore
 python-dotenv==1.2.4
     # via
     #   -c backend/requirements.lock
     #   pydantic-settings
+python-multipart==0.0.34
+    # via
+    #   -c backend/requirements.lock
+    #   electionhub-backend (backend/pyproject.toml)
 ruff==0.17.5
     # via electionhub-backend (backend/pyproject.toml)
+s3transfer==0.19.3
+    # via
+    #   -c backend/requirements.lock
+    #   boto3
+six==1.17.0
+    # via
+    #   -c backend/requirements.lock
+    #   python-dateutil
 sqlalchemy==2.0.58
     # via
     #   -c backend/requirements.lock
@@ -148,6 +178,10 @@ tzdata==2026.6
     # via
     #   -c backend/requirements.lock
     #   psycopg
+urllib3==2.8.0
+    # via
+    #   -c backend/requirements.lock
+    #   botocore
 uvicorn==0.54.0
     # via
     #   -c backend/requirements.lock

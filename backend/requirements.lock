@@ -14,6 +14,12 @@ argon2-cffi==25.1.0
     # via electionhub-backend (backend/pyproject.toml)
 argon2-cffi-bindings==26.2.0
     # via argon2-cffi
+boto3==1.44.9
+    # via electionhub-backend (backend/pyproject.toml)
+botocore==1.44.9
+    # via
+    #   boto3
+    #   s3transfer
 cffi==2.1.1
     # via argon2-cffi-bindings
 click==8.5.1
@@ -26,6 +32,10 @@ h11==0.16.0
     # via uvicorn
 idna==3.20
     # via anyio
+jmespath==1.1.0
+    # via
+    #   boto3
+    #   botocore
 mako==1.4.3
     # via alembic
 markupsafe==3.0.4
@@ -46,8 +56,16 @@ pydantic-core==2.50.4
     # via pydantic
 pydantic-settings==2.16.3
     # via electionhub-backend (backend/pyproject.toml)
+python-dateutil==2.9.0.post0
+    # via botocore
 python-dotenv==1.2.4
     # via pydantic-settings
+python-multipart==0.0.34
+    # via electionhub-backend (backend/pyproject.toml)
+s3transfer==0.19.3
+    # via boto3
+six==1.17.0
+    # via python-dateutil
 sqlalchemy==2.0.58
     # via
     #   electionhub-backend (backend/pyproject.toml)
@@ -74,5 +92,7 @@ typing-inspection==0.4.5
     #   pydantic-settings
 tzdata==2026.6
     # via psycopg
+urllib3==2.8.0
+    # via botocore
 uvicorn==0.54.0
     # via electionhub-backend (backend/pyproject.toml)

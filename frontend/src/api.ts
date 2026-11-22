@@ -6,12 +6,15 @@ export class ApiError extends Error {
 export function createApi(token?: string, expired?: () => void) {
   async function request<T>(path: string, options: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
     let response: Response;
+    const multipart = options.body instanceof FormData;
+    let requestBody: BodyInit | undefined;
+    if (options.body !== undefined) requestBody = options.body instanceof FormData ? options.body : JSON.stringify(options.body);
     try {
       response = await fetch('/api/v1' + path, {
         method: options.method || 'GET', cache: 'no-store', credentials: 'omit',
         signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
-        headers: { Accept: 'application/json', ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        headers: { Accept: 'application/json', ...(options.body !== undefined && !multipart ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: requestBody,
       });
     } catch (error) {
       if (options.signal?.aborted) throw error;
@@ -38,7 +41,24 @@ export function createApi(token?: string, expired?: () => void) {
       if (offset >= page.total || !page.items.length) return result;
     }
   }
-  return { request, all };
+  async function download(path: string): Promise<Blob> {
+    let response: Response;
+    try {
+      response = await fetch('/api/v1' + path, {
+        cache: 'no-store', credentials: 'omit', signal: AbortSignal.timeout(15000),
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+    } catch {
+      throw new ApiError(0, 'Téléchargement impossible. Vérifiez votre connexion puis réessayez.');
+    }
+    if (!response.ok) {
+      if (response.status === 401 && token) expired?.();
+      const body = await response.json().catch(() => null);
+      throw new ApiError(response.status, typeof body?.detail === 'string' ? body.detail : 'Téléchargement impossible.');
+    }
+    return response.blob();
+  }
+  return { request, all, download };
 }
 export type Api = ReturnType<typeof createApi>;
 export const publicApi = createApi();

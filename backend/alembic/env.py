@@ -2,6 +2,7 @@ from alembic import context
 from app import (
     auth_models,  # noqa: F401 -- enregistre les métadonnées de sécurité
     domain_models,  # noqa: F401 -- enregistre les métadonnées métier
+    phase5_models,  # noqa: F401 -- enregistre les métadonnées documentaires
 )
 from app.config import Settings
 from app.database import Base, create_db_engine

@@ -14,9 +14,11 @@ from app.auth_api import router as auth_router
 from app.auth_models import Account
 from app.config import Settings
 from app.database import create_db_engine, get_session
+from app.document_api import router as document_router
 from app.domain_api import router as domain_router
 from app.domain_models import Report
 from app.models import PollingStation
+from app.object_storage import create_object_storage
 from app.otp_api import LocalSmsSender
 from app.otp_api import router as otp_router
 from app.schemas import HealthRead, PollingStationPage, PollingStationRead
@@ -24,7 +26,7 @@ from app.station_api import router as station_router
 from app.validation_api import router as validation_router
 
 logger = logging.getLogger(__name__)
-SCHEMA_VERSION = "0003_authentication"
+SCHEMA_VERSION = "0004_private_documents"
 DbSession = Annotated[Session, Depends(get_session)]
 
 
@@ -41,19 +43,20 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app = FastAPI(
         title="ElectionHub — Démonstration locale",
         description="Données fictives uniquement. Aucun vote électronique. "
-        "Phase 3 : sessions expirantes, rôles serveur et validation humaine. "
-        "SMS simulés uniquement.",
-        version="0.3.0",
+        "Sessions, rôles serveur, validation humaine et stockage documentaire privé.",
+        version="0.5.0",
         lifespan=lifespan,
     )
     app.state.engine = db_engine
     app.state.settings = settings
     app.state.sms_sender = LocalSmsSender(settings.mock_sms_directory)
+    app.state.object_storage = create_object_storage(settings)
     app.include_router(domain_router)
     app.include_router(auth_router)
     app.include_router(otp_router)
     app.include_router(validation_router)
     app.include_router(station_router)
+    app.include_router(document_router)
 
     @app.middleware("http")
     async def no_cache(request: Request, call_next):

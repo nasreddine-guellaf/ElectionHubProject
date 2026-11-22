@@ -1,12 +1,12 @@
-# ElectionHub — Application web locale, phase 4
+# ElectionHub — Phase 5 en cours : stockage documentaire
 
 Plateforme académique de consultation et consolidation des résultats par bureau de vote.
 **Aucun vote électronique. Données de démonstration entièrement fictives.**
 
-Le socle FastAPI/PostgreSQL, le domaine électoral et les sessions par rôle sont conservés.
-La phase 4 ajoute une application React unique pour le portail citoyen/agent et le
-back-office administrateur/validateur. Les API métier exigent une **session Bearer**.
-Aucune ressource AWS, Azure, GCP ou Cloudflare n'est déployée.
+Le socle FastAPI/PostgreSQL, le domaine électoral, les sessions par rôle et l'application
+React unique sont opérationnels. La première tranche de phase 5 ajoute les pièces privées,
+un stockage local testable et un adaptateur S3 configurable. Les API métier exigent une
+**session Bearer**. Aucune ressource AWS, Azure, GCP ou Cloudflare n'est encore déployée.
 
 ## Prérequis
 
@@ -219,14 +219,16 @@ docker compose start db api
 - [Vérifications de la phase 3](docs/testing/phase-3.md)
 - [Application web et parcours phase 4](docs/api/phase-4.md)
 - [Vérifications de la phase 4](docs/testing/phase-4.md)
+- [Phase 5 en cours : stockage documentaire et adaptateur S3](docs/api/phase-5.md)
+- [Vérifications intermédiaires de la phase 5](docs/testing/phase-5.md)
 
-**IMPLÉMENTÉ :** application React responsive avec navigation par rôle, tableaux de bord,
-saisie des PV, validation humaine, comptes, scrutins, affectations, bureaux, audit et
-consultation citoyenne. Le backend reste l'autorité pour chaque permission.
-**TESTÉ :** build de production, tests fonctionnels frontend, 98 tests backend, images
-Docker, Nginx, liens profonds, proxy API et connexions par rôle.
-**PLANIFIÉ :** documents et services AWS en phase 5,
-analytics, publication et interconnexions cloud aux phases suivantes.
+**IMPLÉMENTÉ :** application React responsive, cycle des PV, validation humaine, RBAC,
+administration, consultation citoyenne et pièces justificatives privées PDF/JPEG/PNG.
+Le backend reste l'autorité pour chaque permission.
+**TESTÉ :** build de production, 19 tests frontend, 107 tests backend, migration 0004,
+stack Docker, volume documentaire, dépôt, téléchargement et suppression d'un PDF fictif.
+**PLANIFIÉ :** qualification du bucket S3, RDS, Lambda PV, Lambda OTP et SNS pendant la
+suite de la phase 5, puis analytics, publication et autres interconnexions cloud.
 
 Pour vérifier les sessions sans modifier `.env`, après seed et bootstrap, depuis la racine :
 
@@ -240,5 +242,6 @@ scrutin, révoque ses sessions et arrête le serveur. Des événements d'audit s
 Sous WSL : `.venv/bin/python scripts/smoke_phase3.py`. Les limites de connexion s'appliquent
 aussi au script ; attendre leur expiration après plusieurs exécutions rapprochées.
 
-Prochain jalon : RDS, S3, Lambda PV, Lambda OTP et SNS en phase 5, après validation des
-comptes AWS, de la région et du budget. Aucun déploiement cloud ni SMS réel à ce stade.
+Prochain jalon : provisionner et qualifier le bucket S3 privé, puis Lambda PV et RDS, après
+validation du compte AWS, de la région et du budget. Lambda OTP et SNS suivront dans la
+même phase. Aucun déploiement cloud ni SMS réel à ce stade.

@@ -15,14 +15,14 @@ vote électronique.
 | 2 | Modèle métier et API | ✅ Terminée | Scrutins, candidats, affectations, PV révisables et résultats structurés |
 | 3 | Authentification et autorisation | ✅ Terminée | Sessions, RBAC, OTP citoyen simulé et audit |
 | 4 | Application web | ✅ Terminée | Application React locale unique pour tous les profils |
-| 5 | Données et événements AWS | ⏭️ Prochaine | RDS, S3, Lambda PV, Lambda OTP et SNS |
+| 5 | Données et événements AWS | 🚧 En cours | Socle documentaire local/S3 implémenté ; AWS réel, Lambda, RDS et SNS restent à faire |
 | 6 | Backend principal GCP | ⏳ À faire | API sur Compute Engine, Secret Manager et connexion à RDS |
 | 7 | Déploiement Azure | ⏳ À faire | Frontend unique sur Azure App Service |
 | 8 | Analytique et publication | ⏳ À faire | BigQuery, synchronisation et Looker Studio |
 | 9 | Sécurité, secours et résilience | ⏳ À faire | Cloudflare, Load Balancing GCP, EC2 et tests de basculement |
 | 10 | Recette finale et documentation | ⏳ À faire | Tests multi-cloud de bout en bout et démonstration académique |
 
-Progression fonctionnelle : **4 phases sur 10 terminées**. Cela ne signifie pas que 40 %
+Progression fonctionnelle : **4 phases terminées sur 10, phase 5 en cours**. Cela ne signifie pas que 40 %
 de l'effort total est consommé : les déploiements et interconnexions multi-cloud restantes
 comportent davantage de dépendances externes, de sécurité et de validation.
 
@@ -85,14 +85,21 @@ Preuves : [parcours de l'application phase 4](api/phase-4.md) et
 
 ### Phase 5 — Données et événements AWS
 
-**Statut : prochaine phase, non démarrée.**
+**Statut : en cours.**
+
+Terminé dans la première tranche : migration documentaire, adaptateurs local et S3,
+contrôles PDF/JPEG/PNG, empreinte SHA-256, endpoints privés, RBAC, audit, interface de
+dépôt/téléchargement et tests automatisés. Aucun bucket ni service AWS n'a encore été créé.
+
+Voir [l'API documentaire de phase 5](api/phase-5.md) et le
+[rapport de vérification intermédiaire](testing/phase-5.md).
 
 Travail prévu :
 
 - Préparer le déploiement PostgreSQL sur Amazon RDS et une stratégie de migration sûre.
 - Créer un stockage S3 privé et chiffré pour les PV et photographies d'incidents.
-- Ajouter au backend un adaptateur de stockage compatible avec un mode local de test.
-- Implémenter les téléversements contrôlés : formats, taille, métadonnées et autorisations.
+- Qualifier l'adaptateur S3 contre le bucket privé réellement provisionné.
+- Étendre les téléversements contrôlés aux photographies d'incidents.
 - Implémenter Lambda PV, déclenchée par S3, avec traitement idempotent et reprise d'erreur.
 - Implémenter Lambda OTP et l'intégration SNS dans une configuration de test approuvée.
 - Ajouter les incidents et pièces jointes au modèle, à l'API et à l'interface.

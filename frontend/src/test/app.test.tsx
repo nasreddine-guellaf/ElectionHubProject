@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { App } from '../App';
 import { createApi } from '../api';
 import { validateCounts } from '../reportValidation';
-import type { Revision, Role } from '../types';
+import type { ReportDocument, Revision, Role } from '../types';
 
 const station = { id: 'station-1', code: 'DEMO-BV-001', name: 'Bureau fictif des Nuages', registered_voters: 100 };
 const election = { id: 'election-1', code: 'DEMO-ELECTION', name: 'Scrutin fictif', start_date: '2026-11-01', end_date: '2026-11-01', enforce_ballot_equation: true };
@@ -17,14 +17,15 @@ let calls: { path: string; method: string; body: any }[];
 let otpDisabled: boolean;
 let forceConflict: boolean;
 let failReports: number;
+let documents: ReportDocument[];
 const page = (items: unknown[]) => ({ items, total: items.length, limit: 100, offset: 0 });
 const userFor = (role: Role) => ({ id: role.toLowerCase(), display_name: `${role} fictif`, role });
 beforeEach(() => {
-  revision = structuredClone(baseRevision); reportExists = true; calls = []; otpDisabled = false; forceConflict = false; failReports = 0;
+  revision = structuredClone(baseRevision); reportExists = true; calls = []; otpDisabled = false; forceConflict = false; failReports = 0; documents = [];
   window.localStorage.clear(); window.sessionStorage.clear();
   vi.stubGlobal('fetch', vi.fn(async (input: string, options: RequestInit = {}) => {
     const url = new URL(input, 'http://localhost'); const path = url.pathname.replace('/api/v1', ''); const method = options.method || 'GET';
-    const body = options.body ? JSON.parse(String(options.body)) : undefined;
+    const body = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
     calls.push({ path, method, body });
     const authorization = (options.headers as Record<string, string>)?.Authorization;
     const role = authorization?.replace('Bearer token-', '').toUpperCase() as Role;
@@ -49,6 +50,13 @@ beforeEach(() => {
     if (path === '/reports/report-1/validations') return ok(page([]));
     if (path === '/reports/report-1/revisions') return ok(page([revision]));
     if (path === '/reports/report-1/revisions/1') return ok(revision);
+    if (path === '/reports/report-1/revisions/1/documents' && method === 'GET') return ok(documents);
+    if (path === '/reports/report-1/revisions/1/documents' && method === 'POST') {
+      const file = (body as FormData).get('file') as File;
+      const document: ReportDocument = { id: 'document-1', revision_id: revision.id, uploaded_by: 'agent', original_filename: file.name, media_type: file.type, size_bytes: file.size, sha256: 'a'.repeat(64), storage_provider: 'LOCAL', processing_status: 'STORED', created_at: revision.created_at, processed_at: null, failure_reason: null };
+      documents = [document]; return ok(document, 201);
+    }
+    if (path === '/reports/report-1/revisions/1/documents/document-1' && method === 'DELETE') { documents = []; return ok(null, 204); }
     if (path.startsWith('/reports/report-1/revisions/1/')) {
       if (forceConflict) return ok({ detail: 'Version obsolète : rechargez le PV.' }, 409);
       if (path.endsWith('/results')) revision = { ...revision, ...body, edit_version: revision.edit_version + 1 };
@@ -120,6 +128,15 @@ test('saisie cohérente, sauvegarde puis soumission avec la version du serveur',
   await waitFor(() => expect(revision.status).toBe('SUBMITTED'));
   expect(calls.find(c => c.path.endsWith('/results') && c.method === 'PUT')?.body.expected_version).toBe(1);
   expect(calls.find(c => c.path.endsWith('/submit'))?.body.expected_version).toBe(2);
+});
+test('le client API transmet les pièces en multipart sans forcer le Content-Type', async () => {
+  let request: RequestInit | undefined;
+  vi.stubGlobal('fetch', vi.fn(async (_url: string, options: RequestInit) => { request = options; return new Response(JSON.stringify({ id: 'document-1' }), { status: 201, headers: { 'Content-Type': 'application/json' } }); }));
+  const data = new FormData(); data.append('expected_version', '1'); data.append('file', new Blob(['%PDF-1.4 synthetic'], { type: 'application/pdf' }), 'pv-fictif.pdf');
+  await createApi('token-agent').request('/reports/report-1/revisions/1/documents', { method: 'POST', body: data });
+  expect(request?.body).toBe(data);
+  expect(request?.headers).toMatchObject({ Accept: 'application/json', Authorization: 'Bearer token-agent' });
+  expect(request?.headers).not.toHaveProperty('Content-Type');
 });
 test('un conflit conserve les valeurs saisies et indique de recharger', async () => {
   forceConflict = true; app('/app/pv/report-1'); const user = await login(); await screen.findByLabelText('Bulletins déposés');

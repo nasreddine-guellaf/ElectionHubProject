@@ -15,4 +15,5 @@ export interface Revision { id: string; report_id: string; election_id: string; 
 export interface ReportRow extends Report { revision: Revision }
 export interface ReportEvent { id: string; revision_id: string; actor_id: string; action: string; edit_version: number; note: string; created_at: string }
 export interface Validation { id: string; revision_id: string; validator_id: string; decision: string; reason: string; created_at: string }
+export interface ReportDocument { id: string; revision_id: string; uploaded_by: string; original_filename: string; media_type: string; size_bytes: number; sha256: string; storage_provider: 'LOCAL' | 'S3'; processing_status: 'STORED' | 'PROCESSED' | 'FAILED'; created_at: string; processed_at: string | null; failure_reason: string | null }
 export interface Audit { id: string; actor_id: string | null; target_id: string | null; action: string; resource: string | null; created_at: string }

@@ -17,11 +17,17 @@ class Settings(BaseSettings):
     )
 
     # Déploiement distant/TLS à préparer dans les phases cloud.
-    app_env: Literal["local", "test"] = "local"
+    app_env: Literal["local", "test", "cloud"] = "local"
     session_ttl_seconds: int = Field(default=3600, ge=300, le=86400)
     citizen_otp_enabled: bool = False
     otp_hmac_key: SecretStr | None = None
     mock_sms_directory: Path = ROOT / ".local/sms"
+    object_storage_backend: Literal["local", "s3"] = "local"
+    local_object_directory: Path = ROOT / ".local/objects"
+    object_upload_max_bytes: int = Field(default=10 * 1024 * 1024, ge=1024, le=25 * 1024 * 1024)
+    aws_region: str = "eu-west-3"
+    s3_bucket: str | None = None
+    s3_endpoint_url: str | None = None
     postgres_user: str = "electionhub"
     postgres_password: SecretStr
     postgres_db: str = "electionhub"
@@ -34,6 +40,8 @@ class Settings(BaseSettings):
             self.otp_hmac_key is None or len(self.otp_hmac_key.get_secret_value()) < 32
         ):
             raise ValueError("La simulation OTP exige un secret HMAC d'au moins 32 caractères.")
+        if self.object_storage_backend == "s3" and not self.s3_bucket:
+            raise ValueError("S3_BUCKET est obligatoire lorsque le stockage S3 est activé.")
         return self
 
     @field_validator("postgres_password")
