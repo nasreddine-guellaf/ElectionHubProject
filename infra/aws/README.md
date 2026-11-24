@@ -51,6 +51,37 @@ pass this path as `-state` on subsequent local-backend plans, applies and state
 commands. Keep a protected backup. The commands and figures below without that
 flag describe the historical pre-adoption previews.
 
+### Account A backup API
+
+The deployed baseline uses `enable_new_resources=true`, `enable_backup_api=true`,
+`enable_test_runner=false`, `enable_pv_lambda=false`, and
+`backup_api_commit=8809703adb6aef8a41c5f5eb0fbd839682e36831`. Preserve these
+settings when planning against live state. The backup flag manages a single
+ARM64 `t4g.micro`, its instance profile, and the required VPC rules. The
+instance has an outbound public IPv4 for HTTPS and SSM, an encrypted gp3 volume,
+IMDSv2, no inbound rules, and a loopback-only FastAPI service. Its IAM role
+reads only the application database secret and uses the existing private S3
+prefix policy. RDS accepts port 5432 from the backup API security group.
+
+Use SSM to check `systemctl status electionhub-api` and
+`curl -fsS http://127.0.0.1:8000/health`. The pinned source above predates the
+cloud health schema fix. The running instance received that fix via SSM. On
+the next release, publish and pin a commit that includes the fix before
+replacing the instance. `backup/smoke.py` uses a synthetic scoped fixture
+and the live API. Run it from the backend working directory as the service
+user, with the application secret ARN and bucket name as its two arguments.
+Use the locked HTTP test dependencies on a temporary Python path. Afterward,
+an operator with S3 version permissions removes
+only the exact reported `TEST_KEY` versions and delete markers.
+
+Live qualification passed: health and polling-station read returned 200,
+PostgreSQL reported TLS active, and the PDF round trip returned 201/200/204
+with matching SHA-256 and SSE-S3. The fixture removed its synthetic database
+rows. Terraform reported no changes after deployment.
+
+The instance can serve as a backup integration target once a supported,
+authenticated GCP ingress and failover path has been designed and tested.
+
 Terraform 1.17.2 is installed locally under the ignored `.local/tools` directory. The binary
 was downloaded from HashiCorp and its SHA-256 was checked against the official checksum file.
 

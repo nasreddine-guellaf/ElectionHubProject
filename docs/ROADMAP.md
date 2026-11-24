@@ -19,7 +19,7 @@ vote électronique.
 | 6 | Backend principal GCP | 🟡 Prête à démarrer | Lot préparatoire attribuable à Ayman ; déploiement bloqué par les accès GCP et RDS |
 | 7 | Déploiement Azure | 🟡 Prête à démarrer | Lot préparatoire attribuable à Ayman ; déploiement bloqué par les accès Azure et l'URL GCP |
 | 8 | Analytique et publication | ⏳ À faire | BigQuery, synchronisation et Looker Studio |
-| 9 | Sécurité, secours et résilience | ⏳ À faire | Cloudflare, Load Balancing GCP, EC2 et tests de basculement |
+| 9 | Sécurité, secours et résilience | 🚧 En cours | API de secours EC2 qualifiée via SSM, basculement GCP à faire |
 | 10 | Recette finale et documentation | ⏳ À faire | Tests multi-cloud de bout en bout et démonstration académique |
 
 Progression fonctionnelle : **4 phases terminées sur 10, phase 5 en cours**. Cela ne signifie pas que 40 %
@@ -169,7 +169,7 @@ La tranche événementielle est décrite dans le
 
 | Responsable | Terminé ou préparé | À faire en parallèle | Bloqué ou à vérifier |
 |---|---|---|---|
-| **A — Nasr Eddine Guellaf** · `749251635900` · `eu-north-1` | S3 qualifié et adopté, AWS-3 et AWS-4A terminés, RDS privé déployé, Alembic et TLS vérifiés via SSM | Préparer EC2 de secours et l'accès privé de l'application. | Notification et accès S3 de B en attente des ARN et d'une recette commune. |
+| **A — Nasr Eddine Guellaf** · `749251635900` · `eu-north-1` | S3 qualifié et adopté, RDS privé déployé, API de secours EC2 qualifiée en TLS avec RDS et S3 | Publier la version avec le correctif santé et préparer l'accès de secours GCP. | Notification et accès S3 de B en attente des ARN et d'une recette commune. |
 | **B — Bouzadi Badreddine** · compte indépendant | Handler et tests PV AWS-5A réutilisables | Tests PV avec fixtures S3/SQL, Lambda OTP avec transport simulé, rôles Lambda, monitoring, IaC et état séparés, tests serverless | Avant tout déploiement B, vérifier ID, région, type de compte, crédits et permissions effectives. SNS dépend du sandbox régional et d'un destinataire consentant. Aucun accès RDS requis pour ces travaux locaux. |
 
 Badreddine peut commencer par les commandes et fixtures du
@@ -299,13 +299,16 @@ résultats publiés deviennent visibles dans Looker Studio avec une fraîcheur d
 
 ### Phase 9 — Sécurité, secours et résilience
 
-**Statut : à faire.**
+**Statut : API de secours EC2 déployée et qualifiée via SSM. Basculement à faire.**
 
 - Placer Cloudflare devant l'application Azure : HTTPS, WAF, DDoS et CDN approprié.
 - Configurer un point d'entrée GCP Load Balancing pris en charge.
-- Compte A (Nasr Eddine) : préparer et déployer une API de secours compatible sur Amazon EC2.
-  Vérifier le même contrat API, l'accès privé à RDS et la parité des versions avant la recette
-  de bascule. Compte B fournit les preuves et alertes des fonctions serverless.
+- Compte A (Nasr Eddine) : le service de secours EC2 répond à `/health` et lit la base
+  PostgreSQL privée avec `verify-full`. Le parcours HTTP sur une pièce S3 fictive
+  a renvoyé 201, 200 puis 204 avec contrôle SHA-256 et SSE-S3. L'API écoute en loopback.
+  Voir le [runbook EC2](../infra/aws/README.md#account-a-backup-api).
+- Vérifier la parité des versions et préparer l'entrée de secours GCP. Compte B fournit
+  les preuves et alertes des fonctions serverless.
 - Étudier puis implémenter un basculement GCP vers EC2 techniquement supporté.
 - Synchroniser les versions/configurations et tester des pannes contrôlées.
 - Mettre en place logs, métriques, alertes, sauvegardes et procédures de restauration.

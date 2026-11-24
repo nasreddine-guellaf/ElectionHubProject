@@ -7,7 +7,8 @@ Le socle FastAPI/PostgreSQL, le domaine électoral, les sessions par rôle et l'
 React unique sont opérationnels. La première tranche de phase 5 ajoute les pièces privées,
 un stockage local testable et un adaptateur S3 configurable. Les API métier exigent une
 **session Bearer**. Le compte AWS A héberge le bucket S3 de démonstration et la base
-PostgreSQL privée, qualifiée depuis un runner temporaire. L'application tourne encore localement.
+PostgreSQL privée, qualifiée depuis un runner temporaire. L'API de secours EC2 est
+accessible pour la recette via SSM. Le portail reste local.
 
 ## Prérequis
 
@@ -246,7 +247,8 @@ Le backend reste l'autorité pour chaque permission.
 stack Docker, volume documentaire, dépôt, téléchargement et suppression d'un PDF fictif.
 **QUALIFIÉ SUR AWS :** bucket S3 privé, chiffrement, versioning et parcours documentaire.
 **DÉPLOYÉ DANS LE COMPTE A :** bucket adopté dans Terraform, VPC et RDS PostgreSQL 16
-privés. Lambda PV, Lambda OTP et SNS suivent dans le compte B.
+privés, API de secours EC2 qualifiée via SSM. Lambda PV, Lambda OTP et SNS suivent
+dans le compte B. Le basculement GCP reste à qualifier.
 
 Pour vérifier les sessions sans modifier `.env`, après seed et bootstrap, depuis la racine :
 

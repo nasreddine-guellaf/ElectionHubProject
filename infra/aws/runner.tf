@@ -1,5 +1,5 @@
 data "aws_ssm_parameter" "amazon_linux_2023_arm64" {
-  count = var.enable_new_resources && var.enable_test_runner ? 1 : 0
+  count = var.enable_new_resources && (var.enable_test_runner || var.enable_backup_api) ? 1 : 0
 
   name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
 }
