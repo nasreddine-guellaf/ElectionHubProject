@@ -76,10 +76,24 @@ démarrent bien).
 
 ## Connectivité GCP → RDS
 
-Préféré : RDS privé et chemin inter-cloud approuvé (VPN). Non réalisé ici. Repli prévu :
-`terraform output nat_egress_ipv4`, puis n'autoriser que `<ip>/32` dans le groupe de sécurité
-RDS (variable `postgres_ingress_cidrs` côté `infra/aws`) avec TLS `verify-full` toujours
-obligatoire. Aucune règle `0.0.0.0/0`.
+**Décision ouverte, non résolue.** Depuis AWS-4B (24 novembre 2026), RDS est forcé en **privé**
+(`publicly_accessible = false`, aucune route Internet) et le compte AWS simplifié n'autorise pas
+de VPN site à site. La feuille de route traite « GCP → RDS » comme un chantier distinct : aucun
+chemin n'existe aujourd'hui entre les VM GCP et la base. Tant qu'il n'est pas tranché, l'API GCP
+ne peut pas atteindre RDS et le déploiement réel de la phase 6 reste bloqué.
+
+Pistes à discuter avec Nasr (aucune n'est implémentée ici) :
+
+1. **Endpoint public filtré** : ancien repli de ce document. `terraform output nat_egress_ipv4`,
+   puis n'autoriser que `<ip>/32` dans le groupe de sécurité RDS avec TLS `verify-full`,
+   jamais `0.0.0.0/0`. Contredit le choix actuel « RDS privé » d'AWS-4B : demande une
+   décision explicite et un changement côté `infra/aws`.
+2. **Service intermédiaire privé en AWS** qui possède l'accès SQL, et que l'API GCP appelle
+   en HTTPS authentifié. Nouveau contrat, nouveau coût, plus de code.
+3. **Autre moyen de liaison inter-cloud** si le compte AWS évolue (VPN, interconnexion).
+
+La partie GCP de ce lot (NAT à IPv4 fixe, secrets, TLS `verify-full`) reste valable pour les
+pistes 1 et 3.
 
 ## Identité inter-cloud pour S3
 

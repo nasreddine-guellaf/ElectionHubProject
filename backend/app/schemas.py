@@ -27,4 +27,4 @@ class HealthRead(BaseModel):
     status: Literal["ok"] = "ok"
     database: Literal["ok"] = "ok"
     schema_version: str
-    environment: Literal["local", "test"]
+    environment: Literal["local", "test", "cloud"]

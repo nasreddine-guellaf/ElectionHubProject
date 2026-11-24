@@ -21,6 +21,15 @@ def test_health_checks_database_and_migration(client):
     }
 
 
+def test_health_reports_cloud_environment(client):
+    # Régression SEC-02 : en APP_ENV=cloud, /health ne doit pas échouer à la validation
+    # de sa réponse (sinon le load balancer GCP verrait toutes les instances en panne).
+    client.app.state.settings.app_env = "cloud"
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["environment"] == "cloud"
+
+
 def test_list_returns_seeded_postgres_records(client):
     response = client.get("/api/v1/polling-stations")
     assert response.status_code == 200

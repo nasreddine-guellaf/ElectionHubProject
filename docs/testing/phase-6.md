@@ -10,7 +10,9 @@ exécutés sur un poste Windows avec Docker Desktop et Terraform 1.17.2 sont lis
 | `terraform plan` avec jeton factice, `enable_new_resources=true` | 36 ressources à créer, 0 modification, 0 suppression |
 | Modèle de démarrage rendu puis `bash -n` | Syntaxe valide, aucun marqueur de modèle restant |
 | `migrate.sh --dry-run` et refus du tag `latest` | Conformes |
-| Tests backend / frontend (phase 7) | 117 / 19 réussis |
+| Tests backend / frontend, première exécution (phase 7) | 117 / 19 réussis |
+| Après fusion avec `main` (incidents, Lambda PV) et correction SEC-02 | backend **135 réussis**, frontend **20 réussis**, Ruff OK ; conteneurs web 8/8 et API 6/6 |
+| Test de régression SEC-02 `test_health_reports_cloud_environment` | échoue sans la correction (erreur de validation pydantic), réussit avec |
 | `terraform plan` réel, `apply`, démarrage d'une VM, LB, accès RDS, accès S3 | **Non exécutés** : pas de compte GCP |
 
 Les 6 tests de conteneur couvrent : refus de démarrer en mode cloud sans bundle CA ou avec un
@@ -27,7 +29,7 @@ Limites : `shellcheck` n'était pas installé, donc le script de démarrage n'a 
 | Cas | Attendu |
 |---|---|
 | Démarrage d'une instance | `electionhub-api.service` actif, journal de démarrage sans erreur |
-| `/health` via le LB en HTTPS | 200, schéma `0004_private_documents` |
+| `/health` via le LB en HTTPS | 200, `environment: cloud`, schéma `0005_incidents` (version attendue par le code) |
 | HTTP clair | redirection 301 |
 | Instance arrêtée | remplacée par le MIG, trafic maintenu |
 | Parcours métier contre RDS en `verify-full` | succès ; échec si la CA est retirée |
