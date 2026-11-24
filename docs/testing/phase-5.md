@@ -1,18 +1,19 @@
 # Vérifications phase 5 — stockage local et Amazon S3
 
-Date : 23 novembre 2026. Cette recette couvre le socle logiciel et la qualification réelle
+Date : 24 novembre 2026. Cette recette couvre le socle logiciel, les incidents et la qualification réelle
 de l'adaptateur Amazon S3 dans la région `eu-north-1`.
 
 | Vérification | Résultat |
 |---|---|
 | Tests documentaires backend | **8 tests réussis** |
-| Suite backend complète | **127 tests réussis**, 2 avertissements de dépendances |
+| Suite backend complète | **134 tests réussis**, 1 avertissement de dépendance |
+| Tests incidents et photographies | **7 tests réussis** : cycle complet, RBAC, audit, type, signature, taille et immutabilité |
 | Tests Lambda PV | **10 tests réussis** : doublon, intégrité, reprise et validation d'événement |
 | Artefact Lambda Linux | import réel de psycopg 3.3.9 et Boto3 1.44.9 en conteneur réussi |
-| Tests frontend | **19 tests réussis** après ajout du scénario multipart |
+| Tests frontend | **20 tests réussis** après ajout du parcours incident et photographie multipart |
 | Build TypeScript/Vite | Réussi |
 | Ruff et contrôle de format | Réussis |
-| Migration `0004_private_documents` | Appliquée localement |
+| Migrations `0004_private_documents` et `0005_incidents` | Appliquées localement |
 | `alembic check` | Aucun changement de schéma manquant |
 | Stack Docker | PostgreSQL, API et web sains ; migration et initialisation du volume terminées avec code 0 |
 | Smoke test via `127.0.0.1:3000` | Dépôt 201, téléchargement 200, contenu identique, suppression 204 |
@@ -34,5 +35,6 @@ pour l'utilisateur non privilégié de l'API.
 L'adaptateur S3 est maintenant qualifié contre le compte AWS de démonstration. La dépendance
 `botocore[crt]` permet à Boto3 de consommer les identifiants temporaires créés par
 `aws login`. Lambda PV est préparée et testée hors AWS, avec un plan non appliqué ; sa qualification
-réelle dépend encore de RDS. Lambda OTP, SNS, les incidents et les tests de reprise déployés restent
-à faire. Les avertissements proviennent de dépendances de test ; aucun test n'échoue.
+réelle dépend encore de RDS. Les incidents et photographies sont terminés localement mais pas
+encore déployés sur AWS. Lambda OTP, SNS et les tests de reprise déployés restent à faire.
+L'avertissement provient d'une dépendance de test ; aucun test n'échoue.

@@ -75,4 +75,5 @@ doit être appliquée qu'après l'adoption S3, la création de RDS et un nouveau
 7. Rejouer le même événement et vérifier une seule ligne logique dans `object_events`.
 8. Tester un objet altéré, une indisponibilité DB et la DLQ, puis supprimer les données de test.
 
-AWS-5A n'ajoute pas encore les incidents, Lambda OTP ou SNS. Aucun SMS réel n'est autorisé.
+AWS-5B ajoute ensuite les incidents et leurs photographies dans l'application et étend le rôle
+applicatif au préfixe `incidents/`. Lambda OTP et SNS restent à implémenter. Aucun SMS réel n'est autorisé.

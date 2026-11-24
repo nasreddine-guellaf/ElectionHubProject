@@ -1,4 +1,4 @@
-# Stockage documentaire et adaptateurs AWS — Phase 5 en cours
+# Stockage documentaire, incidents et adaptateurs AWS — Phase 5 en cours
 
 La première tranche de la phase 5 ajoute le stockage privé des pièces justificatives.
 Elle conserve les binaires hors de PostgreSQL, permet de choisir le provider par
@@ -8,7 +8,7 @@ configuration et a été qualifiée contre le bucket S3 ElectionHub en `eu-north
 
 **Implémenté et testé localement et sur S3 :**
 
-- migration `0004_private_documents` ;
+- migrations `0004_private_documents` et `0005_incidents` ;
 - métadonnées, taille, type MIME, empreinte SHA-256 et état de traitement ;
 - stockage local privé pour le développement ;
 - adaptateur Amazon S3 utilisant le mécanisme d'identité standard du SDK AWS ;
@@ -27,6 +27,10 @@ configuration et a été qualifiée contre le bucket S3 ElectionHub en `eu-north
   inspection S3, suppression par l'API et purge des seules versions temporaires.
 - préparation RDS : TLS `verify-full` obligatoire en cloud, CA validée et pool SQLAlchemy
   borné, sans changer le workflow PostgreSQL 16 local.
+- signalement d'incidents par catégorie avec description contrôlée et audit ;
+- photographies d'incident privées JPEG/PNG, limitées à 25 Mio, avec validation de signature,
+  empreinte SHA-256, téléchargement contrôlé et suppression uniquement en brouillon ;
+- adaptateurs local et S3 partagés avec les documents, sous le préfixe privé `incidents/`.
 
 **Préparé et testé hors déploiement :** code Lambda PV, déduplication transactionnelle,
 validation d'intégrité, rôle RDS IAM sans mot de passe, DLQ et plan Terraform. **Pas encore
@@ -70,6 +74,11 @@ Les routes suivantes exigent une session Bearer et l'accès au dossier :
 | `POST` | `/api/v1/reports/{id}/revisions/{n}/documents` | agent auteur, révision courante en brouillon |
 | `GET` | `/api/v1/reports/{id}/revisions/{n}/documents/{document_id}/content` | acteur autorisé sur le PV |
 | `DELETE` | `/api/v1/reports/{id}/revisions/{n}/documents/{document_id}` | agent auteur, révision courante en brouillon |
+| `GET` | `/api/v1/reports/{id}/revisions/{n}/incidents` | acteur autorisé sur le PV |
+| `POST` | `/api/v1/reports/{id}/revisions/{n}/incidents` | agent auteur, révision courante en brouillon |
+| `POST` | `/api/v1/reports/{id}/revisions/{n}/incidents/{incident_id}/attachments` | agent auteur, révision courante en brouillon |
+| `GET` | `/api/v1/reports/{id}/revisions/{n}/incidents/{incident_id}/attachments/{attachment_id}/content` | acteur autorisé sur le PV |
+| `DELETE` | `/api/v1/reports/{id}/revisions/{n}/incidents/{incident_id}/attachments/{attachment_id}` | agent auteur, révision courante en brouillon |
 
 Le dépôt utilise `multipart/form-data` avec `expected_version` et `file`. L'API ne retourne
 jamais la clé interne de l'objet ni une URL publique. Le téléchargement repasse par le
@@ -80,6 +89,5 @@ contrôle d'accès du backend.
 1. Définir et valider la région, le budget et la convention de nommage AWS.
 2. Écrire l'Infrastructure as Code du bucket privé, des rôles et des notifications.
 3. Déployer et qualifier Lambda PV et le traitement idempotent de `object_events` déjà préparés.
-4. Ajouter les incidents et leurs photographies.
-5. Provisionner RDS après approbation, monter la CA puis tester Alembic et la restauration.
-6. Remplacer le simulateur OTP par Lambda OTP + SNS dans un sandbox approuvé.
+4. Provisionner RDS après approbation, monter la CA puis tester Alembic et la restauration.
+5. Remplacer le simulateur OTP par Lambda OTP + SNS dans un sandbox approuvé.

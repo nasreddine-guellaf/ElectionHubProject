@@ -138,8 +138,11 @@ et un runner SSM temporaire. Trois plans frais ont été générés sans applica
 `6 import / 0 add / 0 change / 0 destroy`, RDS privé `6 / 13 / 0 / 0`, et RDS avec runner
 `6 / 27 / 0 / 0`. Le compte Free actif dispose de 99,999782 USD jusqu'au 22 mai 2027.
 AWS-5A prépare maintenant Lambda PV : validation d'intégrité, déduplication transactionnelle,
-authentification RDS IAM sans mot de passe, DLQ et réseau privé. Les 127 tests backend passent et
-le plan dédié indique `6 import / 25 add / 0 change / 0 destroy`. Aucun plan n'est appliqué.
+authentification RDS IAM sans mot de passe, DLQ et réseau privé. AWS-5B ajoute les incidents et
+leurs photographies privées au modèle, à l'API et à l'interface, avec RBAC, audit, contrôles de
+contenu et préfixe S3 distinct. Les 134 tests backend et 20 tests frontend passent ; le build
+frontend réussit. Le plan AWS-5A dédié indique `6 import / 25 add / 0 change / 0 destroy`.
+Aucun plan n'est appliqué.
 
 Voir [l'API documentaire de phase 5](api/phase-5.md) et le
 [rapport de vérification intermédiaire](testing/phase-5.md). La préparation AWS-3,
@@ -160,10 +163,8 @@ Travail prévu :
 - Monter le bundle CA officiel et qualifier `verify-full` contre la future instance RDS.
 - Utiliser le runner SSM de deux heures pour créer le compte non propriétaire, tester Alembic
   sur une base vide, prouver TLS, puis supprimer immédiatement le runner.
-- Étendre les téléversements contrôlés aux photographies d'incidents.
 - Déployer puis qualifier Lambda PV déjà préparée, avec événement dupliqué, intégrité et DLQ.
 - Implémenter Lambda OTP et l'intégration SNS dans une configuration de test approuvée.
-- Ajouter les incidents et pièces jointes au modèle, à l'API et à l'interface.
 - Tester les événements dupliqués, fichiers invalides, échecs partiels et nouvelles tentatives.
 
 Prérequis : choix du backend d'état, plans frais sans destruction, approbation du budget et
@@ -184,7 +185,7 @@ humaine. Le parcours OTP de test passe par Lambda OTP et SNS sans exposer le cod
 déploiement GCP effectué.**
 
 État transmis : FastAPI possède une image Docker non privilégiée, une sonde `/health`, des
-migrations Alembic et 117 tests backend réussis. Le backend sait utiliser S3 par la chaîne
+migrations Alembic et 134 tests backend réussis. Le backend sait utiliser S3 par la chaîne
 d'identifiants standard AWS. La connexion PostgreSQL accepte désormais un bundle CA, impose
 `verify-full` en environnement cloud/RDS et utilise un pool borné. En revanche, aucun projet,
 réseau, registre d'images, service account, secret, VM, MIG, load balancer ou NAT GCP n'a été

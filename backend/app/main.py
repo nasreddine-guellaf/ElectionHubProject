@@ -17,6 +17,7 @@ from app.database import create_db_engine, get_session
 from app.document_api import router as document_router
 from app.domain_api import router as domain_router
 from app.domain_models import Report
+from app.incident_api import router as incident_router
 from app.models import PollingStation
 from app.object_storage import create_object_storage
 from app.otp_api import LocalSmsSender
@@ -26,7 +27,7 @@ from app.station_api import router as station_router
 from app.validation_api import router as validation_router
 
 logger = logging.getLogger(__name__)
-SCHEMA_VERSION = "0004_private_documents"
+SCHEMA_VERSION = "0005_incidents"
 DbSession = Annotated[Session, Depends(get_session)]
 
 
@@ -57,6 +58,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.include_router(validation_router)
     app.include_router(station_router)
     app.include_router(document_router)
+    app.include_router(incident_router)
 
     @app.middleware("http")
     async def no_cache(request: Request, call_next):

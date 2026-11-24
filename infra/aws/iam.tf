@@ -33,7 +33,7 @@ data "aws_iam_policy_document" "application_s3" {
   }
 
   statement {
-    sid    = "ReadAndDeleteReportObjects"
+    sid    = "ReadAndDeleteApplicationObjects"
     effect = "Allow"
     actions = [
       "s3:AbortMultipartUpload",
@@ -41,14 +41,20 @@ data "aws_iam_policy_document" "application_s3" {
       "s3:GetObject",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.documents.arn}/reports/*"]
+    resources = [
+      "${aws_s3_bucket.documents.arn}/reports/*",
+      "${aws_s3_bucket.documents.arn}/incidents/*",
+    ]
   }
 
   statement {
-    sid       = "UploadEncryptedReportObjects"
-    effect    = "Allow"
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.documents.arn}/reports/*"]
+    sid     = "UploadEncryptedApplicationObjects"
+    effect  = "Allow"
+    actions = ["s3:PutObject"]
+    resources = [
+      "${aws_s3_bucket.documents.arn}/reports/*",
+      "${aws_s3_bucket.documents.arn}/incidents/*",
+    ]
 
     condition {
       test     = "StringEquals"

@@ -1,4 +1,4 @@
-# ElectionHub AWS-4B / AWS-5A Terraform plans
+# ElectionHub AWS-4B / AWS-5A / AWS-5B Terraform plans
 
 This directory prepares AWS-4B without provisioning anything. It has three safety layers:
 
@@ -16,7 +16,7 @@ only the expected imports and approved creations, with no S3 update or destroy a
 
 - region: `eu-north-1` only;
 - existing S3 bucket: imported, never recreated;
-- application role: S3 access limited to `reports/*`, with encrypted uploads required;
+- application role: S3 access limited to `reports/*` and `incidents/*`, with encrypted uploads required;
 - network: dedicated VPC and two isolated database subnets with no Internet route;
 - PostgreSQL: RDS PostgreSQL 16.15, `db.t4g.micro`, Single-AZ, 20 GiB gp3, encryption,
   forced TLS, seven-day automated backups, deletion protection, no Performance Insights;
@@ -75,6 +75,12 @@ Set-Location infra/aws
   -var "enable_new_resources=true" `
   -var "enable_test_runner=false" `
   -var "enable_pv_lambda=true"
+
+# Re-run after AWS-5B to verify the application role's incidents/* prefix. Do not apply.
+& $terraform plan -out ..\..\.local\plans\aws5b-incidents.tfplan `
+  -var "enable_new_resources=true" `
+  -var "enable_test_runner=false" `
+  -var "enable_pv_lambda=true"
 ```
 
 Generated `.tfplan`, state, and `.terraform` content are ignored by Git. No `apply`, state
@@ -87,6 +93,8 @@ Validated on 24 November 2026 with Terraform 1.17.2 and AWS provider 6.73.0:
 - private IAM/VPC/RDS preview: 6 imports, 13 add, 0 change, 0 destroy;
 - private RDS plus temporary runner preview: 6 imports, 27 add, 0 change, 0 destroy;
 - private RDS plus Lambda PV preview: 6 imports, 25 add, 0 change, 0 destroy;
+- AWS-5B incidents preview: 6 imports, 25 add, 0 change, 0 destroy; all six existing S3
+  controls remain no-op and the application role includes only `reports/*` and `incidents/*`;
 - neither saved plan was applied.
 
 The saved plans are intentionally ignored. Never apply an old saved plan: renew the AWS login,
