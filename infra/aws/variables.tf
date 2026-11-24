@@ -33,33 +33,47 @@ variable "existing_s3_bucket_name" {
 }
 
 variable "enable_new_resources" {
-  description = "Allows plans for IAM, VPC, and RDS resources. Keep false for the S3 adoption plan."
+  description = "Allows plans for IAM, VPC, Secrets Manager, and RDS. Keep false for S3-only checks."
   type        = bool
   default     = false
 }
 
-variable "rds_publicly_accessible" {
-  description = "Expose an RDS public endpoint. Use only with exact /32 ingress CIDRs and TLS."
+variable "enable_test_runner" {
+  description = "Creates one temporary SSM-managed EC2 runner. Requires enable_new_resources=true."
   type        = bool
   default     = false
+}
+
+variable "rds_engine_version" {
+  description = "Qualified PostgreSQL 16 minor version available in eu-north-1."
+  type        = string
+  default     = "16.15"
 
   validation {
-    condition     = !var.rds_publicly_accessible || length(var.postgres_ingress_cidrs) > 0
-    error_message = "A public RDS endpoint requires at least one explicit ingress CIDR."
+    condition     = startswith(var.rds_engine_version, "16.")
+    error_message = "ElectionHub AWS-4B is restricted to PostgreSQL major version 16."
   }
 }
 
-variable "postgres_ingress_cidrs" {
-  description = "Approved fixed client CIDRs. Never use 0.0.0.0/0."
-  type        = set(string)
-  default     = []
+variable "rds_instance_class" {
+  description = "Free Plan eligible RDS class selected for the demonstration."
+  type        = string
+  default     = "db.t4g.micro"
 
   validation {
-    condition = alltrue([
-      for cidr in var.postgres_ingress_cidrs :
-      can(cidrhost(cidr, 0)) && cidr != "0.0.0.0/0" && cidr != "::/0"
-    ])
-    error_message = "Use valid, restricted CIDRs; world-open database access is forbidden."
+    condition     = var.rds_instance_class == "db.t4g.micro"
+    error_message = "AWS-4B only approves db.t4g.micro; review cost and memory before changing it."
+  }
+}
+
+variable "rds_backup_retention_days" {
+  description = "Automated backup retention for the controlled deployment."
+  type        = number
+  default     = 7
+
+  validation {
+    condition     = var.rds_backup_retention_days >= 1 && var.rds_backup_retention_days <= 7
+    error_message = "The demonstration retention window must remain between 1 and 7 days."
   }
 }
 
@@ -73,4 +87,37 @@ variable "db_master_username" {
   description = "Administrative bootstrap user; the application must use a separate DB role."
   type        = string
   default     = "electionhub_admin"
+}
+
+variable "db_application_username" {
+  description = "Dedicated non-owner runtime login created after RDS provisioning."
+  type        = string
+  default     = "electionhub_app"
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9_]{2,30}$", var.db_application_username))
+    error_message = "db_application_username must be a simple lowercase PostgreSQL identifier."
+  }
+}
+
+variable "test_runner_instance_type" {
+  description = "Short-lived ARM64 EC2 size used only for migration and TLS qualification."
+  type        = string
+  default     = "t4g.micro"
+
+  validation {
+    condition     = var.test_runner_instance_type == "t4g.micro"
+    error_message = "AWS-4B only approves the Free Plan eligible t4g.micro test runner."
+  }
+}
+
+variable "test_runner_ttl_hours" {
+  description = "Automatic termination deadline for the optional test runner."
+  type        = number
+  default     = 2
+
+  validation {
+    condition     = var.test_runner_ttl_hours >= 1 && var.test_runner_ttl_hours <= 4
+    error_message = "The temporary runner TTL must remain between 1 and 4 hours."
+  }
 }

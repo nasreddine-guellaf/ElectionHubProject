@@ -22,3 +22,15 @@ output "rds_master_secret_arn" {
   ) : null
   sensitive = true
 }
+
+output "application_database_secret_arn" {
+  description = "Empty secret container populated by the controlled bootstrap runner."
+  value       = var.enable_new_resources ? aws_secretsmanager_secret.application_database[0].arn : null
+}
+
+output "test_runner_instance_id" {
+  description = "Temporary SSM runner ID when explicitly enabled."
+  value = var.enable_new_resources && var.enable_test_runner ? (
+    aws_instance.test_runner[0].id
+  ) : null
+}

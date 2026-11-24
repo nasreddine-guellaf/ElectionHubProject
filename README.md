@@ -90,7 +90,8 @@ Le développement local conserve `POSTGRES_SSLMODE=disable`. Une cible RDS ou
 `APP_ENV=cloud` exige `POSTGRES_SSLMODE=verify-full` et `POSTGRES_SSLROOTCERT` vers un
 bundle CA valide. SQLAlchemy utilise un pool borné configurable ; les valeurs par défaut
 sont 5 connexions persistantes et 5 connexions de débordement au maximum par processus.
-Voir la [préparation backend AWS-4A](docs/infrastructure/aws-4a-backend-rds.md).
+Voir la [préparation backend AWS-4A](docs/infrastructure/aws-4a-backend-rds.md) et le
+[plan de déploiement privé RDS AWS-4B](docs/infrastructure/aws-4b-rds-plan.md).
 
 Pour développer l'interface avec rechargement automatique, laisser l'API sur le port 8000 :
 
@@ -231,6 +232,7 @@ docker compose start db api
 - [Vérifications intermédiaires de la phase 5](docs/testing/phase-5.md)
 - [Préparation AWS-3 : Terraform, IAM et RDS](docs/infrastructure/aws-3-plan.md)
 - [Préparation AWS-4A : backend TLS pour RDS](docs/infrastructure/aws-4a-backend-rds.md)
+- [Préparation AWS-4B : RDS privé et runner contrôlé](docs/infrastructure/aws-4b-rds-plan.md)
 
 **IMPLÉMENTÉ :** application React responsive, cycle des PV, validation humaine, RBAC,
 administration, consultation citoyenne et pièces justificatives privées PDF/JPEG/PNG.

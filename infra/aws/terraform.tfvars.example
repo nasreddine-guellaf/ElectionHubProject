@@ -4,6 +4,12 @@ existing_s3_bucket_name = "electionhub-demo-123456789012-eu-north-1"
 # Safety gate: leave false for the initial S3 import-only plan.
 enable_new_resources = false
 
-# Keep RDS private until a concrete connectivity path is approved.
-rds_publicly_accessible = false
-postgres_ingress_cidrs  = []
+# Second safety gate: the short-lived SSM runner is never part of the base RDS plan.
+enable_test_runner = false
+
+rds_engine_version         = "16.15"
+rds_instance_class         = "db.t4g.micro"
+rds_backup_retention_days  = 7
+db_application_username    = "electionhub_app"
+test_runner_instance_type  = "t4g.micro"
+test_runner_ttl_hours      = 2

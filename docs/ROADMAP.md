@@ -15,7 +15,7 @@ vote électronique.
 | 2 | Modèle métier et API | ✅ Terminée | Scrutins, candidats, affectations, PV révisables et résultats structurés |
 | 3 | Authentification et autorisation | ✅ Terminée | Sessions, RBAC, OTP citoyen simulé et audit |
 | 4 | Application web | ✅ Terminée | Application React locale unique pour tous les profils |
-| 5 | Données et événements AWS | 🚧 En cours | S3 opérationnel ; AWS-3 planifié ; préparation backend RDS AWS-4A terminée |
+| 5 | Données et événements AWS | 🚧 En cours | S3 opérationnel ; AWS-4A terminé ; plan privé RDS AWS-4B prêt, non appliqué |
 | 6 | Backend principal GCP | 🟡 Prête à démarrer | Lot préparatoire attribuable à Ayman ; déploiement bloqué par les accès GCP et RDS |
 | 7 | Déploiement Azure | 🟡 Prête à démarrer | Lot préparatoire attribuable à Ayman ; déploiement bloqué par les accès Azure et l'URL GCP |
 | 8 | Analytique et publication | ⏳ À faire | BigQuery, synchronisation et Looker Studio |
@@ -133,6 +133,10 @@ empreinte SHA-256, endpoints privés, RBAC, audit, interface de dépôt/téléch
 tests automatisés et qualification réelle du bucket S3 privé en `eu-north-1`.
 AWS-4A ajoute une configuration TLS RDS fermée par défaut, la validation de CA et un
 pool SQLAlchemy borné, tout en conservant PostgreSQL 16 local sans TLS.
+AWS-4B prépare ensuite un VPC isolé, RDS privé, les secrets, les rôles SQL non propriétaires
+et un runner SSM temporaire. Trois plans frais ont été générés sans application : S3 seul
+`6 import / 0 add / 0 change / 0 destroy`, RDS privé `6 / 13 / 0 / 0`, et RDS avec runner
+`6 / 27 / 0 / 0`. Le compte Free actif dispose de 99,999782 USD jusqu'au 22 mai 2027.
 
 Voir [l'API documentaire de phase 5](api/phase-5.md) et le
 [rapport de vérification intermédiaire](testing/phase-5.md). La préparation AWS-3,
@@ -140,29 +144,30 @@ les coûts et les gardes-fous sont détaillés dans le
 [plan Terraform, IAM et RDS](infrastructure/aws-3-plan.md).
 La configuration backend est décrite dans la
 [préparation TLS RDS AWS-4A](infrastructure/aws-4a-backend-rds.md).
+Le déploiement contrôlé, les coûts et les approbations AWS-4B sont décrits dans le
+[plan RDS privé AWS-4B](infrastructure/aws-4b-rds-plan.md).
 
 Travail prévu :
 
-- Installer et valider Terraform, puis importer le bucket existant dans l'état sans le modifier.
-- Faire approuver le budget RDS estimé à 14,48 USD/mois en privé ou 18,13 USD/mois
-  avec endpoint public filtré, secret géré inclus.
-- Créer, après approbation, le rôle applicatif minimal, le VPC et RDS PostgreSQL 16.
+- Faire approuver le backend d'état, puis adopter le bucket dans l'état sans le modifier.
+- Faire approuver le budget RDS privé estimé à 14,88 USD/mois, secrets inclus.
+- Créer, après approbation, le rôle applicatif minimal, le VPC isolé et RDS PostgreSQL 16.
 - Monter le bundle CA officiel et qualifier `verify-full` contre la future instance RDS.
-- Créer un utilisateur SQL applicatif distinct puis tester Alembic sur une base RDS vide.
+- Utiliser le runner SSM de deux heures pour créer le compte non propriétaire, tester Alembic
+  sur une base vide, prouver TLS, puis supprimer immédiatement le runner.
 - Étendre les téléversements contrôlés aux photographies d'incidents.
 - Implémenter Lambda PV, déclenchée par S3, avec traitement idempotent et reprise d'erreur.
 - Implémenter Lambda OTP et l'intégration SNS dans une configuration de test approuvée.
 - Ajouter les incidents et pièces jointes au modèle, à l'API et à l'interface.
 - Tester les événements dupliqués, fichiers invalides, échecs partiels et nouvelles tentatives.
 
-Prérequis : installation Terraform, plan S3 sans changement, budget/alertes, choix de la
-connectivité GCP→RDS, IPv4 de sortie GCP fixe si l'endpoint est public, puis approbation
-explicite avant tout `terraform apply`. Aucun SMS réel ni ressource payante ne doit être
-créé sans accord explicite.
+Prérequis : choix du backend d'état, plans frais sans destruction, approbation du budget et
+du SHA Git exécuté, puis accord explicite avant tout `terraform apply`. RDS doit rester privé.
+Aucun SMS réel ni ressource payante ne doit être créé sans accord explicite.
 
 Risques principaux : consommation des crédits AWS, indisponibilité Single-AZ, exposition
-réseau accidentelle, secret maître utilisé par l'application, dérive Terraform sur le bucket
-existant et impossibilité de relier GCP à un RDS privé avec le compte simplifié actuel.
+réseau accidentelle, secret maître utilisé par l'application, dérive Terraform sur le bucket,
+expiration du plan Free le 22 mai 2027 et absence actuelle de chemin privé GCP→RDS.
 
 Critère de sortie : un agent dépose un PV fictif dans S3, Lambda PV traite l'événement une
 seule fois logiquement, RDS reflète son état, et le rapport attend toujours une validation
@@ -193,9 +198,9 @@ Travail qu'Ayman peut réaliser immédiatement avec Codex, sans accès cloud :
 3. Prévoir le montage en lecture seule du bundle CA AWS et l'injection des secrets depuis
    Secret Manager. Documenter les variables RDS existantes et calculer la limite du pool avec
    `workers × (pool_size + max_overflow)` avant d'augmenter le nombre de workers.
-4. Concevoir le réseau avec sortie stable. La cible préférée reste RDS privé avec un chemin
-   réseau inter-cloud approuvé. Le repli pédagogique est un RDS public non ouvert au monde,
-   autorisant uniquement l'IPv4 fixe Cloud NAT en `/32`, toujours en TLS `verify-full`.
+4. Concevoir un chemin réseau inter-cloud pris en charge vers RDS privé. AWS-4B interdit
+   désormais le repli par endpoint RDS public ; TLS `verify-full` reste obligatoire en plus
+   du contrôle réseau.
 5. Préparer l'identité inter-cloud pour S3 avec des jetons temporaires et le rôle AWS minimal
    planifié ; ne pas ajouter de clés AWS durables dans GCP ou dans le dépôt.
 6. Ajouter les tests et scripts de vérification hors ligne : construction de l'image, démarrage
