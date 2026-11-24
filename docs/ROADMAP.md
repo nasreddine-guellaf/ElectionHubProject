@@ -16,8 +16,8 @@ vote électronique.
 | 3 | Authentification et autorisation | ✅ Terminée | Sessions, RBAC, OTP citoyen simulé et audit |
 | 4 | Application web | ✅ Terminée | Application React locale unique pour tous les profils |
 | 5 | Données et événements AWS | 🚧 En cours | S3 opérationnel ; AWS-3 planifié ; préparation backend RDS AWS-4A terminée |
-| 6 | Backend principal GCP | 🟡 Prête à démarrer | Lot préparatoire attribuable à Ayman ; déploiement bloqué par les accès GCP et RDS |
-| 7 | Déploiement Azure | 🟡 Prête à démarrer | Lot préparatoire attribuable à Ayman ; déploiement bloqué par les accès Azure et l'URL GCP |
+| 6 | Backend principal GCP | 🚧 Préparation hors ligne faite | [Terraform](infrastructure/phase-6-gcp.md) validé hors ligne et tests de conteneur ; déploiement bloqué par les accès GCP et RDS |
+| 7 | Déploiement Azure | 🚧 Préparation hors ligne faite | [Nginx configurable](infrastructure/phase-7-azure.md), Terraform validé hors ligne et tests de conteneur ; déploiement bloqué par les accès Azure et l'URL GCP |
 | 8 | Analytique et publication | ⏳ À faire | BigQuery, synchronisation et Looker Studio |
 | 9 | Sécurité, secours et résilience | ⏳ À faire | Cloudflare, Load Balancing GCP, EC2 et tests de basculement |
 | 10 | Recette finale et documentation | ⏳ À faire | Tests multi-cloud de bout en bout et démonstration académique |

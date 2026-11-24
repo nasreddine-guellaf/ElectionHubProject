@@ -1,0 +1,12 @@
+# Copier vers terraform.tfvars (ignoré par Git). Valeurs d'exemple : à remplacer.
+project_id           = "my-gcp-project-id"
+region               = "europe-north1"
+api_image_tag        = "0.1.0"
+domain               = "api.example.org"
+rds_host             = "electionhub.example.eu-north-1.rds.amazonaws.com"
+s3_bucket            = "electionhub-private-example"
+aws_role_arn         = "arn:aws:iam::123456789012:role/electionhub-api-gcp"
+min_replicas         = 1
+max_replicas         = 2
+api_workers          = 1
+enable_new_resources = false
