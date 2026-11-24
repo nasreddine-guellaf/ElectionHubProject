@@ -16,9 +16,9 @@ variable "enable_new_resources" {
 }
 
 variable "location" {
-  description = "Azure region. To be confirmed with the project owner and the subscription's allowed regions."
+  description = "Azure region. The Azure for Students subscription only allows austriaeast, denmarkeast, polandcentral, germanywestcentral and francecentral (policy 'Allowed resource deployment regions')."
   type        = string
-  default     = "swedencentral"
+  default     = "francecentral"
 }
 
 variable "name_prefix" {

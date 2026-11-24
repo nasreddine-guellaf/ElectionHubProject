@@ -82,8 +82,20 @@ l'identité du Web App reçoive `AcrPull`) ou un registre public/privé externe.
 - Suppression complète : supprimer le groupe de ressources `rg-electionhub-demo-web` (sortie
   `resource_group_name`) ou `terraform destroy`. Le groupe ne contient que cette phase.
 
+## Abonnement vérifié (lecture seule, 24 novembre 2026)
+
+Abonnement **Azure for Students**, état `Enabled`, locataire de l'école. Constats :
+
+- La politique « Allowed resource deployment regions » n'autorise que `austriaeast`,
+  `denmarkeast`, `polandcentral`, `germanywestcentral` et `francecentral`. La région par défaut
+  initiale (`swedencentral`) était refusée ; le défaut est maintenant `francecentral`.
+- Les fournisseurs `Microsoft.Web`, `Microsoft.OperationalInsights` et `Microsoft.Insights`
+  n'étaient pas enregistrés. Comme `versions.tf` désactive l'enregistrement automatique, ils ont
+  été enregistrés à la main (`az provider register`), avec l'accord du propriétaire du compte.
+- Non vérifié : disponibilité du SKU `B1` et des quotas App Service sur cet abonnement ; à
+  contrôler au premier `terraform plan` réel ou en cas d'erreur de quota.
+
 ## Dépendances à obtenir avant un déploiement
 
-Souscription et tenant Azure (à vérifier), région autorisée, budget, registre d'images, domaine
-et DNS éventuels, identité autorisée à lire l'image et **URL HTTPS stable de l'API GCP** (donc
-dépend de la phase 6).
+Budget, registre d'images, domaine et DNS éventuels, identité autorisée à lire l'image et
+**URL HTTPS stable de l'API GCP** (donc dépend de la phase 6).

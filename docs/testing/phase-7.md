@@ -12,7 +12,9 @@ que des essais réellement exécutés sur un poste Windows avec Docker Desktop (
 | Tests frontend | **19 réussis** |
 | Ruff (`check` et `format --check`) | Réussis |
 | `terraform fmt -check`, `init -backend=false`, `validate` sur `infra/azure` | Réussis (Terraform 1.17.2) |
-| `terraform plan` sur `infra/azure` | **Non exécutable hors ligne** : le fournisseur exige `az login` |
+| `terraform plan` sur `infra/azure`, hors ligne | Non exécutable : le fournisseur exige `az login` |
+| `terraform plan` réel après `az login` (Azure for Students), `enable_new_resources=true`, valeurs d'exemple pour le registre et l'API | **5 à créer, 0 modification, 0 suppression**, région `francecentral`. **Non appliqué.** |
+| Fournisseurs `Microsoft.Web`, `OperationalInsights`, `Insights` | Enregistrement lancé ; encore « Registering » lors du dernier contrôle |
 
 Les 8 tests de conteneur couvrent : `/healthz`, repli React sur une route profonde, en-têtes de
 sécurité (CSP, `nosniff`, `Referrer-Policy`, pas de version Nginx), proxy `/api/` avec l'en-tête

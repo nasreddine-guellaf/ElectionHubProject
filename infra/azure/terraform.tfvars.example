@@ -1,6 +1,6 @@
 # Copier vers terraform.tfvars (ignoré par Git). Valeurs d'exemple : à remplacer.
 subscription_id        = "00000000-0000-0000-0000-000000000000"
-location               = "swedencentral"
+location               = "francecentral" # région autorisée par l'abonnement Azure for Students
 container_registry_url = "https://registry.example.io"
 container_image_name   = "electionhub/web"
 container_image_tag    = "0.1.0"
