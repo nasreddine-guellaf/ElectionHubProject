@@ -91,6 +91,20 @@ Côté AWS (lot de Nasr, **non fait et non testé**) : fournisseur d'identité G
 `reports/*` avec chiffrement obligatoire, et condition de confiance sur le `sub` du jeton =
 `terraform output service_account_unique_id`. Le jeton dure une heure.
 
+## Point à trancher avant tout déploiement : l'adresse IP du client
+
+La limitation d'essais (`throttle` dans `security.py`) compte par `request.client.host`, et
+l'API tourne avec `--no-proxy-headers`. Derrière Cloudflare, Nginx Azure et le load balancer GCP,
+FastAPI verra donc **l'adresse du load balancer** et non celle de l'utilisateur : le plafond
+« 30 tentatives par IP » deviendrait **partagé par tous les utilisateurs** (30 connexions
+échouées ou réussies en 15 minutes bloqueraient tout le monde). Nginx vide aussi
+`X-Forwarded-For`, ce qui est sûr mais perd l'information.
+
+Pistes, à décider avec Nasr car cela touche la sécurité du backend : faire relayer l'IP par la
+chaîne de confiance (Cloudflare → Nginx → LB) puis configurer uvicorn avec
+`--proxy-headers --forwarded-allow-ips=<plages du LB>` et un test dédié ; ou limiter par compte
+seulement et traiter la protection par IP au bord (Cloudflare, phase 9). Rien n'a été modifié.
+
 ## Hypothèses non vérifiées (aucun accès GCP/AWS disponible)
 
 - `gcloud` est préinstallé sur l'image Debian 12 de Compute Engine.
