@@ -69,7 +69,7 @@ variable "rds_instance_class" {
 variable "rds_backup_retention_days" {
   description = "Automated backup retention for the controlled deployment."
   type        = number
-  default     = 7
+  default     = 1
 
   validation {
     condition     = var.rds_backup_retention_days >= 1 && var.rds_backup_retention_days <= 7

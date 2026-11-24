@@ -63,7 +63,7 @@ EOF
 
 PGPASSWORD="$MASTER_PASSWORD" PGSSLMODE=verify-full PGSSLROOTCERT="$CA_FILE" \
   psql --host "$RDS_ENDPOINT" --port 5432 --username "$MASTER_USERNAME" \
-  --dbname "$DATABASE_NAME" --file "$WORK_DIR/variables.sql"
+  --dbname "$DATABASE_NAME" --set ON_ERROR_STOP=1 --file "$WORK_DIR/variables.sql"
 
 PGPASSWORD="$MIGRATOR_PASSWORD" PGSSLMODE=verify-full PGSSLROOTCERT="$CA_FILE" \
   psql --host "$RDS_ENDPOINT" --port 5432 --username "$MIGRATOR_USERNAME" \

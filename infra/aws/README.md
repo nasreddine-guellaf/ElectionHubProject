@@ -8,7 +8,7 @@ future Account A notification will reference the reviewed Account B Lambda ARN.
 See the [two-account integration design](../../docs/infrastructure/aws-two-accounts.md)
 and [Account B onboarding](../../docs/infrastructure/aws-account-b-onboarding.md).
 
-This directory prepares AWS-4B without provisioning anything. Its safeguards are:
+This directory manages the Account A deployment. Its safeguards are:
 
 - the existing S3 bucket is represented by Terraform `import` blocks and every S3 resource
   has `prevent_destroy`;
@@ -27,7 +27,8 @@ only the expected imports and approved creations, with no S3 update or destroy a
 - application role: S3 access limited to `reports/*` and `incidents/*`, with encrypted uploads required;
 - network: dedicated VPC and two isolated database subnets with no Internet route;
 - PostgreSQL: RDS PostgreSQL 16.15, `db.t4g.micro`, Single-AZ, 20 GiB gp3, encryption,
-  forced TLS, seven-day automated backups, deletion protection, no Performance Insights;
+  forced TLS, one-day automated backups on Account A's Free plan, deletion protection,
+  no Performance Insights;
 - RDS master password: generated and managed by RDS in Secrets Manager, never placed in
   Terraform variables or state as plaintext;
 - runtime password: generated inside the controlled runner for a non-owner
@@ -43,6 +44,12 @@ security group. The runner itself has no inbound rules; its temporary public IPv
 used only for outbound SSM, package, Git, and CA access. No NAT Gateway is created.
 
 ## Plan-only commands
+
+The Account A deployment uses local state outside the checkout at
+`%LOCALAPPDATA%\ElectionHub\AccountA\eu-north-1\terraform.tfstate`. For Account A,
+pass this path as `-state` on subsequent local-backend plans, applies and state
+commands. Keep a protected backup. The commands and figures below without that
+flag describe the historical pre-adoption previews.
 
 Terraform 1.17.2 is installed locally under the ignored `.local/tools` directory. The binary
 was downloaded from HashiCorp and its SHA-256 was checked against the official checksum file.

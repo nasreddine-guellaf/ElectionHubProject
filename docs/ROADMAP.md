@@ -15,7 +15,7 @@ vote électronique.
 | 2 | Modèle métier et API | ✅ Terminée | Scrutins, candidats, affectations, PV révisables et résultats structurés |
 | 3 | Authentification et autorisation | ✅ Terminée | Sessions, RBAC, OTP citoyen simulé et audit |
 | 4 | Application web | ✅ Terminée | Application React locale unique pour tous les profils |
-| 5 | Données et événements AWS | 🚧 En cours | S3 opérationnel ; AWS-4A terminé ; plan privé RDS AWS-4B prêt, non appliqué |
+| 5 | Données et événements AWS | 🚧 En cours | S3 opérationnel ; RDS privé déployé et vérifié ; intégration serverless B à faire |
 | 6 | Backend principal GCP | 🟡 Prête à démarrer | Lot préparatoire attribuable à Ayman ; déploiement bloqué par les accès GCP et RDS |
 | 7 | Déploiement Azure | 🟡 Prête à démarrer | Lot préparatoire attribuable à Ayman ; déploiement bloqué par les accès Azure et l'URL GCP |
 | 8 | Analytique et publication | ⏳ À faire | BigQuery, synchronisation et Looker Studio |
@@ -143,9 +143,16 @@ authentification RDS IAM sans mot de passe, DLQ et réseau privé. AWS-5B ajoute
 leurs photographies privées au modèle, à l'API et à l'interface, avec RBAC, audit, contrôles de
 contenu et préfixe S3 distinct. Les 134 tests backend et 20 tests frontend passent ; le build
 frontend réussit. Le plan AWS-5A dédié indique `6 import / 25 add / 0 change / 0 destroy`.
-Aucun plan n'est appliqué. AWS-5A est sur `main` (`1f87277`) et son Terraform suppose
+Ces chiffres décrivent les plans historiques. AWS-5A est sur `main` (`1f87277`) et son Terraform suppose
 un compte unique. AWS-5B est sur `main` (`8809703`), testé localement et reste à qualifier
 sur AWS.
+
+Compte A : les six ressources S3 ont été adoptées dans l'état local sans mutation.
+RDS PostgreSQL 16.15 est disponible dans le VPC privé, avec chiffrement et sauvegardes
+automatiques d'un jour. Le plan Free a refusé la rétention initiale de sept jours.
+Le runner SSM a appliqué Alembic sur la base vide jusqu'à `0005_incidents` et
+validé le login non propriétaire, TLS `verify-full`, le refus sans TLS et le refus de DDL.
+Il a ensuite été supprimé avec ses 13 ressources temporaires.
 
 Voir [l'API documentaire de phase 5](api/phase-5.md) et le
 [rapport de vérification intermédiaire](testing/phase-5.md). La préparation AWS-3,
@@ -162,7 +169,7 @@ La tranche événementielle est décrite dans le
 
 | Responsable | Terminé ou préparé | À faire en parallèle | Bloqué ou à vérifier |
 |---|---|---|---|
-| **A — Nasr Eddine Guellaf** · `749251635900` · `eu-north-1` | S3 qualifié, AWS-3 et AWS-4A terminés, AWS-4B planifié | Terraform A et choix de l'état, VPC et RDS privés, runner SSM, CA et Alembic sur base vide, rôle applicatif minimal, préparation EC2 de secours | Déploiement après revue du budget et du plan. Notification et accès S3 de B en attente des ARN et d'une recette commune. |
+| **A — Nasr Eddine Guellaf** · `749251635900` · `eu-north-1` | S3 qualifié et adopté, AWS-3 et AWS-4A terminés, RDS privé déployé, Alembic et TLS vérifiés via SSM | Préparer EC2 de secours et l'accès privé de l'application. | Notification et accès S3 de B en attente des ARN et d'une recette commune. |
 | **B — Bouzadi Badreddine** · compte indépendant | Handler et tests PV AWS-5A réutilisables | Tests PV avec fixtures S3/SQL, Lambda OTP avec transport simulé, rôles Lambda, monitoring, IaC et état séparés, tests serverless | Avant tout déploiement B, vérifier ID, région, type de compte, crédits et permissions effectives. SNS dépend du sandbox régional et d'un destinataire consentant. Aucun accès RDS requis pour ces travaux locaux. |
 
 Badreddine peut commencer par les commandes et fixtures du

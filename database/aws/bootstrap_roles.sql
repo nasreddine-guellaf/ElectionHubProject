@@ -2,6 +2,13 @@
 
 -- Required psql variables: database_name, application_username,
 -- application_password, migrator_username, migrator_password, event_username.
+-- RDS administrators can manage these roles without changing protected attributes.
+SELECT 1 / CASE WHEN EXISTS (
+  SELECT 1 FROM pg_roles
+  WHERE rolname IN (:'application_username', :'migrator_username', :'event_username')
+    AND (rolsuper OR rolreplication)
+) THEN 0 ELSE 1 END AS require_unprivileged_roles;
+
 SELECT format(
   'CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
   :'application_username',
@@ -11,7 +18,7 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'application_username'
 \gexec
 
 SELECT format(
-  'ALTER ROLE %I WITH LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
+  'ALTER ROLE %I WITH LOGIN PASSWORD %L NOCREATEDB NOCREATEROLE',
   :'application_username',
   :'application_password'
 )
@@ -26,7 +33,7 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'migrator_username')
 \gexec
 
 SELECT format(
-  'ALTER ROLE %I WITH LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
+  'ALTER ROLE %I WITH LOGIN PASSWORD %L NOCREATEDB NOCREATEROLE',
   :'migrator_username',
   :'migrator_password'
 )
@@ -40,7 +47,7 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'event_username')
 \gexec
 
 SELECT format(
-  'ALTER ROLE %I WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
+  'ALTER ROLE %I WITH LOGIN NOCREATEDB NOCREATEROLE',
   :'event_username'
 )
 \gexec

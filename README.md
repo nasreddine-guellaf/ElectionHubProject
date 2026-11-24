@@ -6,8 +6,8 @@ Plateforme académique de consultation et consolidation des résultats par burea
 Le socle FastAPI/PostgreSQL, le domaine électoral, les sessions par rôle et l'application
 React unique sont opérationnels. La première tranche de phase 5 ajoute les pièces privées,
 un stockage local testable et un adaptateur S3 configurable. Les API métier exigent une
-**session Bearer**. Le bucket S3 de démonstration existant est qualifié ; aucune autre
-ressource AWS et aucune ressource Azure, GCP ou Cloudflare ne sont déployées par le projet.
+**session Bearer**. Le compte AWS A héberge le bucket S3 de démonstration et la base
+PostgreSQL privée, qualifiée depuis un runner temporaire. L'application tourne encore localement.
 
 ## Prérequis
 
@@ -245,8 +245,8 @@ Le backend reste l'autorité pour chaque permission.
 **TESTÉ :** build de production, 20 tests frontend, 134 tests backend, migrations 0004/0005,
 stack Docker, volume documentaire, dépôt, téléchargement et suppression d'un PDF fictif.
 **QUALIFIÉ SUR AWS :** bucket S3 privé, chiffrement, versioning et parcours documentaire.
-**PLANIFIÉ SANS PROVISIONNEMENT :** adoption Terraform du bucket, rôle applicatif minimal,
-VPC, RDS PostgreSQL 16 et Lambda PV idempotente. Lambda OTP et SNS suivent dans la phase 5.
+**DÉPLOYÉ DANS LE COMPTE A :** bucket adopté dans Terraform, VPC et RDS PostgreSQL 16
+privés. Lambda PV, Lambda OTP et SNS suivent dans le compte B.
 
 Pour vérifier les sessions sans modifier `.env`, après seed et bootstrap, depuis la racine :
 
