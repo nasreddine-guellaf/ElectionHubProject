@@ -61,7 +61,9 @@ def run_api(name: str, env: dict[str, str], detach: bool = True) -> str:
 def http_get(name: str, path: str) -> int:
     port = docker("port", name, "8000/tcp").stdout.split(":")[-1].strip()
     try:
-        with urllib.request.urlopen(f"http://127.0.0.1:{port}{path}", timeout=5) as response:
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{port}{path}", timeout=5
+        ) as response:
             return response.status
     except urllib.error.HTTPError as error:
         return error.code
@@ -74,7 +76,9 @@ def wait_ready(name: str, path: str = "/openapi.json") -> None:
             return
         except OSError:
             time.sleep(0.5)
-    raise RuntimeError(f"{name} inaccessible : {docker('logs', name, check=False).stderr}")
+    raise RuntimeError(
+        f"{name} inaccessible : {docker('logs', name, check=False).stderr}"
+    )
 
 
 class ApiContainerTests(unittest.TestCase):
@@ -96,7 +100,9 @@ class ApiContainerTests(unittest.TestCase):
         env = {**BASE_ENV, "POSTGRES_SSLMODE": "require"}
         name = run_api(f"api-tls-{RUN_ID}", env, detach=False)
         logs = docker("logs", name, check=False)
-        self.assertNotEqual(docker("inspect", "-f", "{{.State.ExitCode}}", name).stdout.strip(), "0")
+        self.assertNotEqual(
+            docker("inspect", "-f", "{{.State.ExitCode}}", name).stdout.strip(), "0"
+        )
         self.assertIn("verify-full", logs.stdout + logs.stderr)
 
     def test_liveness_survives_database_outage_but_readiness_fails(self):
@@ -122,7 +128,12 @@ class ApiContainerTests(unittest.TestCase):
 
     def test_image_contains_no_secret_files(self):
         listing = docker(
-            "run", "--rm", "--entrypoint", "sh", IMAGE, "-c",
+            "run",
+            "--rm",
+            "--entrypoint",
+            "sh",
+            IMAGE,
+            "-c",
             "find /workspace -name '.env*' -o -name '*.pem' -o -name '*.tfstate' -o -name '*.key'",
         ).stdout.strip()
         self.assertEqual(listing, "")
@@ -132,5 +143,7 @@ if __name__ == "__main__":
     if "--no-build" in sys.argv:
         sys.argv.remove("--no-build")
     else:
-        docker("build", "-t", IMAGE, "-f", str(ROOT / "backend" / "Dockerfile"), str(ROOT))
+        docker(
+            "build", "-t", IMAGE, "-f", str(ROOT / "backend" / "Dockerfile"), str(ROOT)
+        )
     unittest.main(verbosity=2)

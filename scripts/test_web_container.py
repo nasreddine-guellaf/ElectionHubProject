@@ -51,9 +51,19 @@ def docker(*args: str, check: bool = True) -> subprocess.CompletedProcess:
 def start_web(name: str, env: dict[str, str] | None = None) -> str:
     """Démarre le conteneur avec les mêmes contraintes que Compose ; renvoie l'URL hôte."""
     args = [
-        "run", "-d", "--name", name, "--network", NETWORK,
-        "--read-only", "--tmpfs", "/tmp", "--tmpfs", "/etc/nginx/conf.d:uid=101,gid=101,mode=0755",
-        "-p", "127.0.0.1:0:8080",
+        "run",
+        "-d",
+        "--name",
+        name,
+        "--network",
+        NETWORK,
+        "--read-only",
+        "--tmpfs",
+        "/tmp",
+        "--tmpfs",
+        "/etc/nginx/conf.d:uid=101,gid=101,mode=0755",
+        "-p",
+        "127.0.0.1:0:8080",
     ]
     for key, value in (env or {}).items():
         args += ["-e", f"{key}={value}"]
@@ -67,7 +77,9 @@ def start_web(name: str, env: dict[str, str] | None = None) -> str:
             return url
         except OSError:
             time.sleep(0.5)
-    raise RuntimeError(f"{name} inaccessible : {docker('logs', name, check=False).stderr}")
+    raise RuntimeError(
+        f"{name} inaccessible : {docker('logs', name, check=False).stderr}"
+    )
 
 
 def get(url: str) -> tuple[int, dict[str, str], str]:
@@ -84,15 +96,27 @@ class WebContainerTests(unittest.TestCase):
         docker("network", "create", NETWORK)
         docker(
             # L'alias « api » reproduit le nom de service Compose utilisé par défaut.
-            "run", "-d", "--name", STUB, "--network", NETWORK, "--network-alias", "api",
+            "run",
+            "-d",
+            "--name",
+            STUB,
+            "--network",
+            NETWORK,
+            "--network-alias",
+            "api",
             STUB_IMAGE,
-            "python", "-c", STUB_CODE,
+            "python",
+            "-c",
+            STUB_CODE,
         )
         CONTAINERS.append(STUB)
         time.sleep(2)
         cls.proxied = start_web(
             f"web-proxied-{RUN_ID}",
-            {"API_UPSTREAM": f"http://{STUB}:8000", "API_HOST_HEADER": "api.example.test"},
+            {
+                "API_UPSTREAM": f"http://{STUB}:8000",
+                "API_HOST_HEADER": "api.example.test",
+            },
         )
         cls.proxied_name = f"web-proxied-{RUN_ID}"
 
@@ -126,7 +150,9 @@ class WebContainerTests(unittest.TestCase):
         data = json.loads(body)
         self.assertEqual(data["path"], "/api/v1/ping?x=1")
         self.assertEqual(data["host"], "api.example.test")
-        self.assertIsNone(data["xff"])  # X-Forwarded-For vide : jamais relayé au backend
+        self.assertIsNone(
+            data["xff"]
+        )  # X-Forwarded-For vide : jamais relayé au backend
 
     def test_unavailable_api_returns_json_503(self):
         name = f"web-down-{RUN_ID}"
