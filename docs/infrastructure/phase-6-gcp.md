@@ -87,6 +87,9 @@ le repli par endpoint RDS public**, TLS `verify-full` ne remplaçant pas le cont
 repli de ce document (autoriser l'IPv4 du Cloud NAT en `/32` sur un RDS public) n'est donc **plus
 une option** sans nouvelle décision de Nasr.
 
+Un plan détaillé (option recommandée, coût, pare-feu, vérification `verify-full`) est dans
+[gcp-to-rds-private-path.md](gcp-to-rds-private-path.md), en attente de relecture.
+
 Pistes restantes à discuter avec Nasr (aucune n'est implémentée ici) :
 
 1. **Service intermédiaire privé en AWS** qui possède l'accès SQL, et que l'API GCP appelle en
