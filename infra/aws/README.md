@@ -1,6 +1,14 @@
 # ElectionHub AWS-4B / AWS-5A / AWS-5B Terraform plans
 
-This directory prepares AWS-4B without provisioning anything. It has three safety layers:
+Nasr Eddine owns this Terraform root for Account A in `eu-north-1`. For the
+two-account target, keep `enable_pv_lambda=false`: that flag enables the
+original single-account Lambda, VPC wiring, and bucket notification together.
+Account B will use a separate root, provider account guard, and state. The
+future Account A notification will reference the reviewed Account B Lambda ARN.
+See the [two-account integration design](../../docs/infrastructure/aws-two-accounts.md)
+and [Account B onboarding](../../docs/infrastructure/aws-account-b-onboarding.md).
+
+This directory prepares AWS-4B without provisioning anything. Its safeguards are:
 
 - the existing S3 bucket is represented by Terraform `import` blocks and every S3 resource
   has `prevent_destroy`;
@@ -26,7 +34,7 @@ only the expected imports and approved creations, with no S3 update or destroy a
   `electionhub_app` role and stored in a separate Secrets Manager secret;
 - optional runner: Amazon Linux 2023 `t4g.micro`, no inbound rules, SSM-managed, IMDSv2,
   encrypted 8 GiB root disk, and automatic termination after two hours.
-- optional Lambda PV: RDS IAM login without a password, column-level SQL grants, private
+- historical single-account Lambda PV: RDS IAM login without a password, column-level SQL grants, private
   networking, regional S3 Gateway endpoint, bounded concurrency, logs and encrypted DLQ.
 
 The RDS endpoint is always private. With the runner disabled its security group has no ingress.
@@ -65,6 +73,8 @@ $terraform = Resolve-Path ..\..\.local\tools\terraform-1.17.2\terraform.exe
   -var "enable_new_resources=true" `
   -var "enable_test_runner=true"
 
+# Historical single-account AWS-5A / AWS-5B previews below.
+# Keep enable_pv_lambda=false when planning the two-account Account A target.
 # From the repository root, build the ignored Linux ZIP before the AWS-5A preview.
 Set-Location ../..
 .\scripts\build_lambda_pv.ps1
@@ -95,7 +105,7 @@ Validated on 24 November 2026 with Terraform 1.17.2 and AWS provider 6.73.0:
 - private RDS plus Lambda PV preview: 6 imports, 25 add, 0 change, 0 destroy;
 - AWS-5B incidents preview: 6 imports, 25 add, 0 change, 0 destroy; all six existing S3
   controls remain no-op and the application role includes only `reports/*` and `incidents/*`;
-- neither saved plan was applied.
+- none of these saved plans was applied.
 
 The saved plans are intentionally ignored. Never apply an old saved plan: renew the AWS login,
 rerun all three plans, inspect their JSON action summary, and obtain explicit approval first.

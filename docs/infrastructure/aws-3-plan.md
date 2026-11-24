@@ -3,6 +3,10 @@
 Date de vérification : 23 novembre 2026. Aucun composant n'a été provisionné pendant cette
 préparation et le bucket existant n'a pas été modifié.
 
+Les capacités et coûts relevés ici concernent le compte A de Nasr Eddine.
+La [stratégie à deux comptes](aws-two-accounts.md) conserve ce socle et ajoute
+une qualification distincte du compte B.
+
 > Ce document conserve l'étude AWS-3. Le plan exécutable courant est désormais
 > [AWS-4B](aws-4b-rds-plan.md) : RDS reste strictement privé et l'option d'endpoint public
 > décrite ci-dessous a été abandonnée.

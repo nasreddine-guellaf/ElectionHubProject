@@ -84,10 +84,9 @@ Le dépôt utilise `multipart/form-data` avec `expected_version` et `file`. L'AP
 jamais la clé interne de l'objet ni une URL publique. Le téléchargement repasse par le
 contrôle d'accès du backend.
 
-## Prochaine tranche de phase 5
+## Intégration AWS de phase 5
 
-1. Définir et valider la région, le budget et la convention de nommage AWS.
-2. Écrire l'Infrastructure as Code du bucket privé, des rôles et des notifications.
-3. Déployer et qualifier Lambda PV et le traitement idempotent de `object_events` déjà préparés.
-4. Provisionner RDS après approbation, monter la CA puis tester Alembic et la restauration.
-5. Remplacer le simulateur OTP par Lambda OTP + SNS dans un sandbox approuvé.
+Le [plan d'intégration à deux comptes](../infrastructure/aws-two-accounts.md)
+définit les contrats PV et OTP. Le compte A conserve le bucket et prépare RDS.
+Le compte B peut développer les handlers et tester les événements avec des mocks.
+La [feuille de route](../ROADMAP.md) suit l'avancement et les dépendances.

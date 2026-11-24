@@ -235,6 +235,8 @@ docker compose start db api
 - [Préparation AWS-4A : backend TLS pour RDS](docs/infrastructure/aws-4a-backend-rds.md)
 - [Préparation AWS-4B : RDS privé et runner contrôlé](docs/infrastructure/aws-4b-rds-plan.md)
 - [Préparation AWS-5A : Lambda PV idempotente](docs/infrastructure/aws-5a-lambda-pv.md)
+- [Architecture et contrats AWS à deux comptes](docs/infrastructure/aws-two-accounts.md)
+- [Démarrage de Badreddine sur le compte AWS B](docs/infrastructure/aws-account-b-onboarding.md)
 
 **IMPLÉMENTÉ :** application React responsive, cycle des PV, validation humaine, RBAC,
 administration, consultation citoyenne, pièces justificatives privées PDF/JPEG/PNG et

@@ -136,13 +136,16 @@ pool SQLAlchemy borné, tout en conservant PostgreSQL 16 local sans TLS.
 AWS-4B prépare ensuite un VPC isolé, RDS privé, les secrets, les rôles SQL non propriétaires
 et un runner SSM temporaire. Trois plans frais ont été générés sans application : S3 seul
 `6 import / 0 add / 0 change / 0 destroy`, RDS privé `6 / 13 / 0 / 0`, et RDS avec runner
-`6 / 27 / 0 / 0`. Le compte Free actif dispose de 99,999782 USD jusqu'au 22 mai 2027.
+`6 / 27 / 0 / 0`. Ces résultats et le solde de crédits figurent dans le relevé historique
+du compte A. Le solde, l'échéance et l'éligibilité seront revérifiés avant déploiement.
 AWS-5A prépare maintenant Lambda PV : validation d'intégrité, déduplication transactionnelle,
 authentification RDS IAM sans mot de passe, DLQ et réseau privé. AWS-5B ajoute les incidents et
 leurs photographies privées au modèle, à l'API et à l'interface, avec RBAC, audit, contrôles de
 contenu et préfixe S3 distinct. Les 134 tests backend et 20 tests frontend passent ; le build
 frontend réussit. Le plan AWS-5A dédié indique `6 import / 25 add / 0 change / 0 destroy`.
-Aucun plan n'est appliqué.
+Aucun plan n'est appliqué. AWS-5A est sur `main` (`1f87277`) et son Terraform suppose
+un compte unique. AWS-5B est sur `main` (`8809703`), testé localement et reste à qualifier
+sur AWS.
 
 Voir [l'API documentaire de phase 5](api/phase-5.md) et le
 [rapport de vérification intermédiaire](testing/phase-5.md). La préparation AWS-3,
@@ -155,29 +158,32 @@ Le déploiement contrôlé, les coûts et les approbations AWS-4B sont décrits 
 La tranche événementielle est décrite dans le
 [plan Lambda PV AWS-5A](infrastructure/aws-5a-lambda-pv.md).
 
-Travail prévu :
+#### Développement parallèle sur deux comptes AWS
 
-- Faire approuver le backend d'état, puis adopter le bucket dans l'état sans le modifier.
-- Faire approuver le budget RDS privé estimé à 14,88 USD/mois, secrets inclus.
-- Créer, après approbation, le rôle applicatif minimal, le VPC isolé et RDS PostgreSQL 16.
-- Monter le bundle CA officiel et qualifier `verify-full` contre la future instance RDS.
-- Utiliser le runner SSM de deux heures pour créer le compte non propriétaire, tester Alembic
-  sur une base vide, prouver TLS, puis supprimer immédiatement le runner.
-- Déployer puis qualifier Lambda PV déjà préparée, avec événement dupliqué, intégrité et DLQ.
-- Implémenter Lambda OTP et l'intégration SNS dans une configuration de test approuvée.
-- Tester les événements dupliqués, fichiers invalides, échecs partiels et nouvelles tentatives.
+| Responsable | Terminé ou préparé | À faire en parallèle | Bloqué ou à vérifier |
+|---|---|---|---|
+| **A — Nasr Eddine Guellaf** · `749251635900` · `eu-north-1` | S3 qualifié, AWS-3 et AWS-4A terminés, AWS-4B planifié | Terraform A et choix de l'état, VPC et RDS privés, runner SSM, CA et Alembic sur base vide, rôle applicatif minimal, préparation EC2 de secours | Déploiement après revue du budget et du plan. Notification et accès S3 de B en attente des ARN et d'une recette commune. |
+| **B — Bouzadi Badreddine** · compte indépendant | Handler et tests PV AWS-5A réutilisables | Tests PV avec fixtures S3/SQL, Lambda OTP avec transport simulé, rôles Lambda, monitoring, IaC et état séparés, tests serverless | Avant tout déploiement B, vérifier ID, région, type de compte, crédits et permissions effectives. SNS dépend du sandbox régional et d'un destinataire consentant. Aucun accès RDS requis pour ces travaux locaux. |
 
-Prérequis : choix du backend d'état, plans frais sans destruction, approbation du budget et
-du SHA Git exécuté, puis accord explicite avant tout `terraform apply`. RDS doit rester privé.
-Aucun SMS réel ni ressource payante ne doit être créé sans accord explicite.
+Badreddine peut commencer par les commandes et fixtures du
+[guide de prise en main du compte B](infrastructure/aws-account-b-onboarding.md).
+Les deux développeurs utilisent les [contrats et étapes de recette](infrastructure/aws-two-accounts.md).
+Les étapes communes sont, dans l'ordre :
 
-Risques principaux : consommation des crédits AWS, indisponibilité Single-AZ, exposition
-réseau accidentelle, secret maître utilisé par l'application, dérive Terraform sur le bucket,
-expiration du plan Free le 22 mai 2027 et absence actuelle de chemin privé GCP→RDS.
+1. Valider les contrats OTP/PV, la région PV et les propriétaires des deux états Terraform.
+2. Qualifier les composants séparément. A vérifie PostgreSQL privé, Alembic et `verify-full`.
+   B démontre OTP avec un faux transport et PV avec événements et dépendances simulés.
+3. Valider le chemin privé PV→RDS, les permissions S3 dans les deux comptes, et l'identité
+   GCP→Lambda OTP. GCP→RDS reste un chantier distinct.
+4. Activer la notification `reports/` après validation de la destination et des droits.
+   Déposer un PV fictif, rejouer l'événement et vérifier une seule écriture logique.
+   Le PV reste soumis à la validation humaine. Qualifier un OTP de test via SNS avec
+   autorisation, sans exposer le code dans la réponse ou les journaux.
 
-Critère de sortie : un agent dépose un PV fictif dans S3, Lambda PV traite l'événement une
-seule fois logiquement, RDS reflète son état, et le rapport attend toujours une validation
-humaine. Le parcours OTP de test passe par Lambda OTP et SNS sans exposer le code.
+L'ancienne estimation AWS-4B de 14,88 USD/mois couvre le socle RDS de référence. Rechiffrer
+le runner, EC2, les coûts B et la connectivité intercomptes avant approbation du déploiement.
+RDS reste privé et le runner est retiré après la recette. Les risques et décisions ouvertes
+sont suivis dans le dossier d'intégration ci-dessus.
 
 ### Phase 6 — Backend principal GCP
 
@@ -209,6 +215,8 @@ Travail qu'Ayman peut réaliser immédiatement avec Codex, sans accès cloud :
    du contrôle réseau.
 5. Préparer l'identité inter-cloud pour S3 avec des jetons temporaires et le rôle AWS minimal
    planifié ; ne pas ajouter de clés AWS durables dans GCP ou dans le dépôt.
+   Coordonner aussi avec Badreddine le rôle fédéré B pour l'alias Lambda OTP et
+   les [tests d'identité](infrastructure/aws-two-accounts.md).
 6. Ajouter les tests et scripts de vérification hors ligne : construction de l'image, démarrage
    sans privilèges, échec sans secret/CA, sonde de santé, validation Terraform et documentation
    de rollback/nettoyage. Ajouter `docs/testing/phase-6.md` avec uniquement les résultats
@@ -288,7 +296,9 @@ résultats publiés deviennent visibles dans Looker Studio avec une fraîcheur d
 
 - Placer Cloudflare devant l'application Azure : HTTPS, WAF, DDoS et CDN approprié.
 - Configurer un point d'entrée GCP Load Balancing pris en charge.
-- Déployer une API de secours compatible sur Amazon EC2.
+- Compte A (Nasr Eddine) : préparer et déployer une API de secours compatible sur Amazon EC2.
+  Vérifier le même contrat API, l'accès privé à RDS et la parité des versions avant la recette
+  de bascule. Compte B fournit les preuves et alertes des fonctions serverless.
 - Étudier puis implémenter un basculement GCP vers EC2 techniquement supporté.
 - Synchroniser les versions/configurations et tester des pannes contrôlées.
 - Mettre en place logs, métriques, alertes, sauvegardes et procédures de restauration.

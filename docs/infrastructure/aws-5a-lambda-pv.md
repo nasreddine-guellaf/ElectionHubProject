@@ -3,6 +3,12 @@
 Date de qualification : 24 novembre 2026. Cette tranche ajoute le code et le plan Terraform du
 traitement S3, mais n'applique aucun plan, ne modifie pas le bucket et ne crée aucune ressource.
 
+**Périmètre historique.** Le handler et les tests restent la base de travail de
+Bouzadi Badreddine. Le Terraform et l'ordre ci-dessous décrivent le prototype
+monocompte. Pour la cible à deux comptes, garder `enable_pv_lambda=false` dans
+`infra/aws` et suivre le [dossier d'intégration](aws-two-accounts.md) et le
+[guide du compte B](aws-account-b-onboarding.md).
+
 ## Contrat de traitement
 
 La fonction reçoit uniquement les événements S3 `ObjectCreated:*` du bucket ElectionHub et du

@@ -3,6 +3,12 @@
 Date de qualification : 24 novembre 2026. Cette tranche prépare le déploiement mais ne crée
 aucune ressource, n'applique aucun plan, ne modifie pas S3 et ne migre aucune donnée.
 
+Dans la [stratégie à deux comptes](aws-two-accounts.md), Nasr Eddine conserve ce
+socle dans le compte A. La qualification RDS par le runner est indépendante du
+compte B. Les plans et coûts de cette page précèdent la conception du chemin
+privé PV B→RDS A et du backend de secours EC2. Revalider le budget, les crédits
+et le plan A avant une recette AWS.
+
 ## État vérifié du compte
 
 Les contrôles ont utilisé le profil `electionhub-demo` et des API AWS en lecture seule.
