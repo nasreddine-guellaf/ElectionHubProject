@@ -17,7 +17,7 @@ resource "aws_vpc" "electionhub" {
 }
 
 resource "aws_internet_gateway" "electionhub" {
-  count = var.enable_new_resources && var.enable_test_runner ? 1 : 0
+  count = var.enable_new_resources && (var.enable_test_runner || var.enable_backup_api) ? 1 : 0
 
   vpc_id = aws_vpc.electionhub[0].id
 

@@ -11,7 +11,7 @@ exécutés sur un poste Windows avec Docker Desktop et Terraform 1.17.2 sont lis
 | Modèle de démarrage rendu puis `bash -n` | Syntaxe valide, aucun marqueur de modèle restant |
 | `migrate.sh --dry-run` et refus du tag `latest` | Conformes |
 | Tests backend / frontend, première exécution (phase 7) | 117 / 19 réussis |
-| Après fusion avec `main` (incidents, Lambda PV) et correction SEC-02 | backend **135 réussis**, frontend **20 réussis**, Ruff OK ; conteneurs web 8/8 et API 6/6 |
+| Après fusion avec `main` (incidents, Lambda PV) et correction SEC-02 | backend **135 réussis**, frontend **20 réussis**, Ruff OK ; conteneurs web 8/8 et API 6/6. Après une seconde fusion (EC2 de secours, test santé de Nasr) : backend **136 réussis**, Ruff OK |
 | Test de régression SEC-02 `test_health_reports_cloud_environment` | échoue sans la correction (erreur de validation pydantic), réussit avec |
 | `terraform plan` réel, `apply`, démarrage d'une VM, LB, accès RDS, accès S3 | **Non exécutés** : pas de compte GCP |
 

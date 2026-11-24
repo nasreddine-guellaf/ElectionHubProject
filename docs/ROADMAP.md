@@ -15,11 +15,11 @@ vote électronique.
 | 2 | Modèle métier et API | ✅ Terminée | Scrutins, candidats, affectations, PV révisables et résultats structurés |
 | 3 | Authentification et autorisation | ✅ Terminée | Sessions, RBAC, OTP citoyen simulé et audit |
 | 4 | Application web | ✅ Terminée | Application React locale unique pour tous les profils |
-| 5 | Données et événements AWS | 🚧 En cours | S3 opérationnel ; AWS-4A terminé ; plan privé RDS AWS-4B prêt, non appliqué |
-| 6 | Backend principal GCP | 🚧 Préparation hors ligne faite | [Terraform](infrastructure/phase-6-gcp.md) validé hors ligne et tests de conteneur ; déploiement bloqué par les accès GCP, RDS privé et sa connectivité |
-| 7 | Déploiement Azure | 🚧 Préparation hors ligne faite | [Nginx configurable](infrastructure/phase-7-azure.md), Terraform validé hors ligne et tests de conteneur ; déploiement bloqué par les accès Azure et l'URL GCP |
+| 5 | Données et événements AWS | 🚧 En cours | S3 opérationnel ; RDS privé déployé et vérifié ; intégration serverless B à faire |
+| 6 | Backend principal GCP | 🚧 Préparation hors ligne faite | [Terraform](infrastructure/phase-6-gcp.md) validé hors ligne et tests de conteneur ; projet GCP à configurer ; connectivité GCP→RDS privé à décider |
+| 7 | Déploiement Azure | 🚧 Préparation hors ligne faite | [Nginx configurable](infrastructure/phase-7-azure.md), Terraform validé hors ligne et tests de conteneur ; déploiement bloqué par l'URL GCP |
 | 8 | Analytique et publication | ⏳ À faire | BigQuery, synchronisation et Looker Studio |
-| 9 | Sécurité, secours et résilience | ⏳ À faire | Cloudflare, Load Balancing GCP, EC2 et tests de basculement |
+| 9 | Sécurité, secours et résilience | 🚧 En cours | API de secours EC2 qualifiée via SSM, basculement GCP à faire |
 | 10 | Recette finale et documentation | ⏳ À faire | Tests multi-cloud de bout en bout et démonstration académique |
 
 Progression fonctionnelle : **4 phases terminées sur 10, phase 5 en cours**. Cela ne signifie pas que 40 %
@@ -143,9 +143,16 @@ authentification RDS IAM sans mot de passe, DLQ et réseau privé. AWS-5B ajoute
 leurs photographies privées au modèle, à l'API et à l'interface, avec RBAC, audit, contrôles de
 contenu et préfixe S3 distinct. Les 134 tests backend et 20 tests frontend passent ; le build
 frontend réussit. Le plan AWS-5A dédié indique `6 import / 25 add / 0 change / 0 destroy`.
-Aucun plan n'est appliqué. AWS-5A est sur `main` (`1f87277`) et son Terraform suppose
+Ces chiffres décrivent les plans historiques. AWS-5A est sur `main` (`1f87277`) et son Terraform suppose
 un compte unique. AWS-5B est sur `main` (`8809703`), testé localement et reste à qualifier
 sur AWS.
+
+Compte A : les six ressources S3 ont été adoptées dans l'état local sans mutation.
+RDS PostgreSQL 16.15 est disponible dans le VPC privé, avec chiffrement et sauvegardes
+automatiques d'un jour. Le plan Free a refusé la rétention initiale de sept jours.
+Le runner SSM a appliqué Alembic sur la base vide jusqu'à `0005_incidents` et
+validé le login non propriétaire, TLS `verify-full`, le refus sans TLS et le refus de DDL.
+Il a ensuite été supprimé avec ses 13 ressources temporaires.
 
 Voir [l'API documentaire de phase 5](api/phase-5.md) et le
 [rapport de vérification intermédiaire](testing/phase-5.md). La préparation AWS-3,
@@ -162,7 +169,7 @@ La tranche événementielle est décrite dans le
 
 | Responsable | Terminé ou préparé | À faire en parallèle | Bloqué ou à vérifier |
 |---|---|---|---|
-| **A — Nasr Eddine Guellaf** · `749251635900` · `eu-north-1` | S3 qualifié, AWS-3 et AWS-4A terminés, AWS-4B planifié | Terraform A et choix de l'état, VPC et RDS privés, runner SSM, CA et Alembic sur base vide, rôle applicatif minimal, préparation EC2 de secours | Déploiement après revue du budget et du plan. Notification et accès S3 de B en attente des ARN et d'une recette commune. |
+| **A — Nasr Eddine Guellaf** · `749251635900` · `eu-north-1` | S3 qualifié et adopté, RDS privé déployé, API de secours EC2 qualifiée en TLS avec RDS et S3 | Publier la version avec le correctif santé et préparer l'accès de secours GCP. | Notification et accès S3 de B en attente des ARN et d'une recette commune. |
 | **B — Bouzadi Badreddine** · compte indépendant | Handler et tests PV AWS-5A réutilisables | Tests PV avec fixtures S3/SQL, Lambda OTP avec transport simulé, rôles Lambda, monitoring, IaC et état séparés, tests serverless | Avant tout déploiement B, vérifier ID, région, type de compte, crédits et permissions effectives. SNS dépend du sandbox régional et d'un destinataire consentant. Aucun accès RDS requis pour ces travaux locaux. |
 
 Badreddine peut commencer par les commandes et fixtures du
@@ -292,13 +299,16 @@ résultats publiés deviennent visibles dans Looker Studio avec une fraîcheur d
 
 ### Phase 9 — Sécurité, secours et résilience
 
-**Statut : à faire.**
+**Statut : API de secours EC2 déployée et qualifiée via SSM. Basculement à faire.**
 
 - Placer Cloudflare devant l'application Azure : HTTPS, WAF, DDoS et CDN approprié.
 - Configurer un point d'entrée GCP Load Balancing pris en charge.
-- Compte A (Nasr Eddine) : préparer et déployer une API de secours compatible sur Amazon EC2.
-  Vérifier le même contrat API, l'accès privé à RDS et la parité des versions avant la recette
-  de bascule. Compte B fournit les preuves et alertes des fonctions serverless.
+- Compte A (Nasr Eddine) : le service de secours EC2 répond à `/health` et lit la base
+  PostgreSQL privée avec `verify-full`. Le parcours HTTP sur une pièce S3 fictive
+  a renvoyé 201, 200 puis 204 avec contrôle SHA-256 et SSE-S3. L'API écoute en loopback.
+  Voir le [runbook EC2](../infra/aws/README.md#account-a-backup-api).
+- Vérifier la parité des versions et préparer l'entrée de secours GCP. Compte B fournit
+  les preuves et alertes des fonctions serverless.
 - Étudier puis implémenter un basculement GCP vers EC2 techniquement supporté.
 - Synchroniser les versions/configurations et tester des pannes contrôlées.
 - Mettre en place logs, métriques, alertes, sauvegardes et procédures de restauration.

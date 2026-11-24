@@ -1,0 +1,73 @@
+#!/bin/bash
+set -euo pipefail
+
+systemctl enable --now amazon-ssm-agent
+dnf install -y git python3.11 python3.11-pip
+useradd --system --home-dir /opt/electionhub --shell /sbin/nologin electionhub
+install -d -m 0755 /opt/electionhub
+cd /opt/electionhub
+
+curl --proto '=https' --tlsv1.2 --fail --silent --show-error --retry 3 \
+  'https://truststore.pki.rds.amazonaws.com/${region}/${region}-bundle.pem' -o rds-ca.pem
+git init --quiet source
+git -C source remote add origin https://github.com/nasreddine-guellaf/ElectionHubProject.git
+git -C source fetch --quiet --depth 1 origin '${commit}'
+git -C source checkout --quiet --detach FETCH_HEAD
+test "$(git -C source rev-parse HEAD)" = '${commit}'
+python3.11 -m venv venv
+venv/bin/pip install --disable-pip-version-check --no-cache-dir -r source/backend/requirements.lock
+
+cat > start.py <<'PYTHON'
+import json
+import os
+import sys
+
+import boto3
+
+secret = json.loads(
+    boto3.client("secretsmanager").get_secret_value(SecretId=os.environ["DB_SECRET_ARN"])[
+        "SecretString"
+    ]
+)
+os.environ.update(
+    POSTGRES_HOST=secret["host"],
+    POSTGRES_PORT=str(secret["port"]),
+    POSTGRES_DB=secret["database"],
+    POSTGRES_USER=secret["username"],
+    POSTGRES_PASSWORD=secret["password"],
+)
+os.execv(sys.executable, [sys.executable, "-m", "uvicorn", "app.main:create_app",
+                         "--factory", "--host", "127.0.0.1", "--port", "8000",
+                         "--no-proxy-headers"])
+PYTHON
+
+cat > /etc/systemd/system/electionhub-api.service <<'UNIT'
+[Unit]
+Description=ElectionHub backup API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=electionhub
+Group=electionhub
+WorkingDirectory=/opt/electionhub/source/backend
+Environment=APP_ENV=cloud AWS_REGION=${region} AWS_DEFAULT_REGION=${region}
+Environment=OBJECT_STORAGE_BACKEND=s3 S3_BUCKET=${bucket}
+Environment=DB_SECRET_ARN=${secret_arn}
+Environment=POSTGRES_SSLMODE=verify-full POSTGRES_SSLROOTCERT=/opt/electionhub/rds-ca.pem
+Environment=POSTGRES_POOL_SIZE=2 POSTGRES_MAX_OVERFLOW=2 PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/electionhub/venv/bin/python /opt/electionhub/start.py
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+LimitCORE=0
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now electionhub-api

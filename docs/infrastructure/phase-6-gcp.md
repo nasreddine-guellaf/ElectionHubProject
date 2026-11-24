@@ -18,7 +18,7 @@ Azure (Nginx) ─HTTPS─> Load Balancer HTTPS global ─> MIG régional (1 à 2
 | Exécution | Debian 12 + Docker, un conteneur systemd | image identique à Compose, simple à expliquer et à déboguer |
 | Mise à l'échelle | MIG régional + autoscaler CPU 60 %, 1 à 2 instances | tolérance à la perte d'une zone, coût borné |
 | Entrée | LB HTTPS global, certificat géré, TLS ≥ 1.2, HTTP → 301 vers HTTPS | une seule IP publique, pas d'IP sur les VM |
-| Sortie | Cloud NAT avec **IPv4 réservée** | RDS public filtré sur un seul `/32` (repli pédagogique) |
+| Sortie | Cloud NAT avec **IPv4 réservée** | une seule adresse à autoriser côté AWS si une liste d'autorisation est retenue (voir « Connectivité ») |
 | Secrets | Secret Manager lu avec l'identité de l'instance | rien dans l'image, le dépôt, les métadonnées ou Terraform |
 | Accès S3 | OIDC Google puis `AssumeRole` AWS | aucune clé AWS durable côté GCP |
 
@@ -82,18 +82,22 @@ de VPN site à site. La feuille de route traite « GCP → RDS » comme un chant
 chemin n'existe aujourd'hui entre les VM GCP et la base. Tant qu'il n'est pas tranché, l'API GCP
 ne peut pas atteindre RDS et le déploiement réel de la phase 6 reste bloqué.
 
-Pistes à discuter avec Nasr (aucune n'est implémentée ici) :
+Mise à jour après fusion de `main` : la feuille de route indique que **AWS-4B interdit désormais
+le repli par endpoint RDS public**, TLS `verify-full` ne remplaçant pas le contrôle réseau. L'ancien
+repli de ce document (autoriser l'IPv4 du Cloud NAT en `/32` sur un RDS public) n'est donc **plus
+une option** sans nouvelle décision de Nasr.
 
-1. **Endpoint public filtré** : ancien repli de ce document. `terraform output nat_egress_ipv4`,
-   puis n'autoriser que `<ip>/32` dans le groupe de sécurité RDS avec TLS `verify-full`,
-   jamais `0.0.0.0/0`. Contredit le choix actuel « RDS privé » d'AWS-4B : demande une
-   décision explicite et un changement côté `infra/aws`.
-2. **Service intermédiaire privé en AWS** qui possède l'accès SQL, et que l'API GCP appelle
-   en HTTPS authentifié. Nouveau contrat, nouveau coût, plus de code.
-3. **Autre moyen de liaison inter-cloud** si le compte AWS évolue (VPN, interconnexion).
+Pistes restantes à discuter avec Nasr (aucune n'est implémentée ici) :
 
-La partie GCP de ce lot (NAT à IPv4 fixe, secrets, TLS `verify-full`) reste valable pour les
-pistes 1 et 3.
+1. **Service intermédiaire privé en AWS** qui possède l'accès SQL, et que l'API GCP appelle en
+   HTTPS authentifié. Nouveau contrat, nouveau coût, plus de code.
+2. **Liaison réseau privée inter-cloud** (VPN, interconnexion) si le compte AWS l'autorise un
+   jour. Aujourd'hui non disponible.
+3. **Réexaminer l'interdiction du RDS public**, avec filtrage `/32` et TLS `verify-full`, si
+   l'équipe accepte ce compromis pour la démonstration. Décision de sécurité qui lui appartient.
+
+Dans tous les cas, le reste de ce lot (secrets, TLS `verify-full`, sondes, migration unique) reste
+valable. Le Cloud NAT à IPv4 fixe garde son intérêt pour toute liste d'autorisation côté AWS.
 
 ## Identité inter-cloud pour S3
 

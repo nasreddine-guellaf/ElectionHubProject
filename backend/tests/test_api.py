@@ -8,6 +8,7 @@ from sqlalchemy.exc import OperationalError
 from app.config import Settings
 from app.database import get_session
 from app.main import create_app
+from app.schemas import HealthRead
 
 
 def test_health_checks_database_and_migration(client):
@@ -28,6 +29,11 @@ def test_health_reports_cloud_environment(client):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["environment"] == "cloud"
+
+
+def test_health_response_accepts_cloud_environment():
+    response = HealthRead(schema_version="0005_incidents", environment="cloud")
+    assert response.model_dump()["environment"] == "cloud"
 
 
 def test_list_returns_seeded_postgres_records(client):

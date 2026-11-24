@@ -9,7 +9,7 @@ output "api_url" {
 }
 
 output "nat_egress_ipv4" {
-  description = "Fixed egress IPv4. Allow only <ip>/32 in the RDS security group if RDS is public."
+  description = "Fixed egress IPv4 of the API instances, for any AWS-side allow-list (RDS stays private: see docs/infrastructure/phase-6-gcp.md)."
   value       = one(google_compute_address.nat_egress[*].address)
 }
 

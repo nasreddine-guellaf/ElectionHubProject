@@ -1,7 +1,13 @@
 # AWS-4B — Plan contrôlé RDS PostgreSQL privé
 
-Date de qualification : 24 novembre 2026. Cette tranche prépare le déploiement mais ne crée
-aucune ressource, n'applique aucun plan, ne modifie pas S3 et ne migre aucune donnée.
+Préparation initiale le 24 novembre 2026. Le compte A a depuis déployé RDS PostgreSQL 16.15
+privé, chiffré, protégé contre la suppression et avec une journée de sauvegardes.
+Le bucket existant et ses contrôles ont été importés dans l'état local sans mutation.
+Le runner SSM a validé Alembic jusqu'à `0005_incidents` sur une base vide et testé
+le rôle non propriétaire en TLS `verify-full`. PostgreSQL refuse le DDL pour ce
+rôle et les connexions sans TLS. Aucun transfert de données existantes n'a eu lieu.
+Terraform a supprimé le runner et ses 13 ressources temporaires après la recette.
+L'état actif se trouve dans `%LOCALAPPDATA%\ElectionHub\AccountA\eu-north-1`.
 
 Dans la [stratégie à deux comptes](aws-two-accounts.md), Nasr Eddine conserve ce
 socle dans le compte A. La qualification RDS par le runner est indépendante du
@@ -9,7 +15,7 @@ compte B. Les plans et coûts de cette page précèdent la conception du chemin
 privé PV B→RDS A et du backend de secours EC2. Revalider le budget, les crédits
 et le plan A avant une recette AWS.
 
-## État vérifié du compte
+## État vérifié avant le déploiement
 
 Les contrôles ont utilisé le profil `electionhub-demo` et des API AWS en lecture seule.
 
@@ -42,7 +48,8 @@ les dernières contraintes de capacité et de politique au moment choisi.
 - RDS PostgreSQL 16.15, `db.t4g.micro`, Single-AZ, 20 GiB gp3 chiffrés ;
 - endpoint RDS forcé à `publicly_accessible = false` ;
 - groupe de sécurité RDS sans sortie et sans entrée lorsque le runner est absent ;
-- paramètre `rds.force_ssl=1`, CA `rds-ca-rsa2048-g1`, sauvegardes automatiques sept jours ;
+- paramètre `rds.force_ssl=1`, CA `rds-ca-rsa2048-g1`, sauvegardes automatiques un jour
+  sur le compte Free A. AWS a refusé la rétention de sept jours au déploiement ;
 - mot de passe maître produit et conservé par RDS dans Secrets Manager ;
 - conteneur de secret distinct pour le compte applicatif non propriétaire ;
 - protection contre la suppression et snapshot final obligatoires.
@@ -107,7 +114,7 @@ Free expire le 22 mai 2027 même s'il reste des crédits. Après expiration, le 
 si le compte n'est pas converti. Il faut donc approuver soit la suppression avant cette date,
 soit une mise à niveau maîtrisée du plan.
 
-## Étapes exactes après approbation
+## Séquence de déploiement de référence
 
 1. Choisir le stockage de l'état Terraform. Recommandation : un backend S3 dédié à l'état avec
    verrouillage natif, distinct du bucket documentaire. La solution locale n'est acceptable que
@@ -138,9 +145,9 @@ soit une mise à niveau maîtrisée du plan.
 11. Injecter plus tard le secret applicatif dans GCP Secret Manager par un canal approuvé. Le
     backend GCP doit utiliser `POSTGRES_SSLMODE=verify-full` et le bundle CA monté en lecture seule.
 
-## Approbations et blocages
+## Périmètre de l'approbation et dépendances
 
-Avant tout déploiement, le propriétaire doit approuver explicitement :
+La préparation initiale soumettait les éléments suivants au propriétaire :
 
 1. le backend d'état Terraform et, le cas échéant, un nouveau bucket d'état dédié ;
 2. le coût récurrent estimé à 14,88 USD/mois, couvert par les crédits tant qu'ils existent ;
