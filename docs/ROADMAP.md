@@ -19,7 +19,7 @@ vote électronique.
 | 6 | Backend principal GCP | 🟡 Prête à démarrer | Lot préparatoire attribuable à Ayman ; déploiement bloqué par les accès GCP et RDS |
 | 7 | Déploiement Azure | 🟡 Prête à démarrer | Lot préparatoire attribuable à Ayman ; déploiement bloqué par les accès Azure et l'URL GCP |
 | 8 | Analytique et publication | ⏳ À faire | BigQuery, synchronisation et Looker Studio |
-| 9 | Sécurité, secours et résilience | ⏳ À faire | Cloudflare, Load Balancing GCP, EC2 et tests de basculement |
+| 9 | Sécurité, secours et résilience | 🚧 9.1 auditée | Audit initial et registre des risques ; protections cloud non déployées |
 | 10 | Recette finale et documentation | ⏳ À faire | Tests multi-cloud de bout en bout et démonstration académique |
 
 Progression fonctionnelle : **4 phases terminées sur 10, phase 5 en cours**. Cela ne signifie pas que 40 %
@@ -278,7 +278,32 @@ résultats publiés deviennent visibles dans Looker Studio avec une fraîcheur d
 
 ### Phase 9 — Sécurité, secours et résilience
 
-**Statut : à faire.**
+**Statut : en cours, sous-phase 9.1 auditée localement. Aucune protection cloud ni aucun
+basculement n'est déployé.**
+
+Découpage contrôlé :
+
+1. **9.1 — Audit de sécurité** : revue du RBAC, des sessions, secrets, dépendances,
+   conteneurs et protections API. L'[audit initial](security/phase-9-1-audit.md) consigne
+   les contrôles existants, 17 risques et les vérifications réellement exécutées.
+2. **9.2 — Protection Cloudflare** : HTTPS public, WAF, DDoS, cache et protection d'origine.
+3. **9.3 — Sécurisation réseau et IAM multi-cloud** : chemins privés ou filtrés, identités
+   temporaires et permissions minimales coordonnées avec AWS, GCP et Azure.
+4. **9.4 — Backend de secours AWS EC2** : image compatible, secrets, santé et capacité de
+   secours après approbation du budget et de la connectivité.
+5. **9.5 — Failover GCP vers AWS** : mécanisme techniquement pris en charge, synchronisation
+   de version et essais contrôlés. Aucun automatisme ne sera revendiqué avant preuve réelle.
+6. **9.6 — Monitoring, sauvegardes et restauration** : journaux sans secrets, métriques,
+   alertes, RPO/RTO, sauvegardes et restauration isolée.
+7. **9.7 — Tests de résilience et documentation** : pannes contrôlées, preuves, limites,
+   procédures de retour et nettoyage.
+
+Résultats 9.1 observés le 24 novembre 2026 : Ruff et le formatage réussissent, 16 tests
+backend sans base et 19 tests frontend réussissent, le build frontend réussit, `pip-audit`
+et `npm audit` ne signalent aucune vulnérabilité connue. La suite backend complète (117 tests
+collectés), les builds et scans de conteneurs restent à réexécuter avec PostgreSQL et le
+moteur Docker actifs. Cette limite interdit de présenter 9.1 comme une homologation ou la
+phase 9 comme terminée.
 
 - Placer Cloudflare devant l'application Azure : HTTPS, WAF, DDoS et CDN approprié.
 - Configurer un point d'entrée GCP Load Balancing pris en charge.
