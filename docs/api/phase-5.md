@@ -28,8 +28,9 @@ configuration et a été qualifiée contre le bucket S3 ElectionHub en `eu-north
 - préparation RDS : TLS `verify-full` obligatoire en cloud, CA validée et pool SQLAlchemy
   borné, sans changer le workflow PostgreSQL 16 local.
 
-**Pas encore déployé ni testé sur AWS :** Infrastructure as Code et rôles IAM minimaux,
-notifications S3, Lambda PV, RDS, Lambda OTP et SNS. Le statut `STORED` indique seulement que l'adaptateur a
+**Préparé et testé hors déploiement :** code Lambda PV, déduplication transactionnelle,
+validation d'intégrité, rôle RDS IAM sans mot de passe, DLQ et plan Terraform. **Pas encore
+déployé ni testé sur AWS :** notification S3, Lambda PV, RDS, Lambda OTP et SNS. Le statut `STORED` indique seulement que l'adaptateur a
 accepté le fichier ; il ne prétend pas qu'une Lambda l'a traité.
 
 ## Configuration
@@ -78,7 +79,7 @@ contrôle d'accès du backend.
 
 1. Définir et valider la région, le budget et la convention de nommage AWS.
 2. Écrire l'Infrastructure as Code du bucket privé, des rôles et des notifications.
-3. Implémenter Lambda PV et le traitement idempotent de `object_events`.
+3. Déployer et qualifier Lambda PV et le traitement idempotent de `object_events` déjà préparés.
 4. Ajouter les incidents et leurs photographies.
 5. Provisionner RDS après approbation, monter la CA puis tester Alembic et la restauration.
 6. Remplacer le simulateur OTP par Lambda OTP + SNS dans un sandbox approuvé.

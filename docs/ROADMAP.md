@@ -137,6 +137,9 @@ AWS-4B prépare ensuite un VPC isolé, RDS privé, les secrets, les rôles SQL n
 et un runner SSM temporaire. Trois plans frais ont été générés sans application : S3 seul
 `6 import / 0 add / 0 change / 0 destroy`, RDS privé `6 / 13 / 0 / 0`, et RDS avec runner
 `6 / 27 / 0 / 0`. Le compte Free actif dispose de 99,999782 USD jusqu'au 22 mai 2027.
+AWS-5A prépare maintenant Lambda PV : validation d'intégrité, déduplication transactionnelle,
+authentification RDS IAM sans mot de passe, DLQ et réseau privé. Les 127 tests backend passent et
+le plan dédié indique `6 import / 25 add / 0 change / 0 destroy`. Aucun plan n'est appliqué.
 
 Voir [l'API documentaire de phase 5](api/phase-5.md) et le
 [rapport de vérification intermédiaire](testing/phase-5.md). La préparation AWS-3,
@@ -146,6 +149,8 @@ La configuration backend est décrite dans la
 [préparation TLS RDS AWS-4A](infrastructure/aws-4a-backend-rds.md).
 Le déploiement contrôlé, les coûts et les approbations AWS-4B sont décrits dans le
 [plan RDS privé AWS-4B](infrastructure/aws-4b-rds-plan.md).
+La tranche événementielle est décrite dans le
+[plan Lambda PV AWS-5A](infrastructure/aws-5a-lambda-pv.md).
 
 Travail prévu :
 
@@ -156,7 +161,7 @@ Travail prévu :
 - Utiliser le runner SSM de deux heures pour créer le compte non propriétaire, tester Alembic
   sur une base vide, prouver TLS, puis supprimer immédiatement le runner.
 - Étendre les téléversements contrôlés aux photographies d'incidents.
-- Implémenter Lambda PV, déclenchée par S3, avec traitement idempotent et reprise d'erreur.
+- Déployer puis qualifier Lambda PV déjà préparée, avec événement dupliqué, intégrité et DLQ.
 - Implémenter Lambda OTP et l'intégration SNS dans une configuration de test approuvée.
 - Ajouter les incidents et pièces jointes au modèle, à l'API et à l'interface.
 - Tester les événements dupliqués, fichiers invalides, échecs partiels et nouvelles tentatives.

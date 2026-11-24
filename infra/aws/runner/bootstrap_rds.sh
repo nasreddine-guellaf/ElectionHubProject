@@ -11,6 +11,7 @@ AWS_REGION="${AWS_REGION:-eu-north-1}"
 DATABASE_NAME="${DATABASE_NAME:-electionhub}"
 APPLICATION_USERNAME="${APPLICATION_USERNAME:-electionhub_app}"
 MIGRATOR_USERNAME="${MIGRATOR_USERNAME:-electionhub_migrator}"
+EVENT_USERNAME="${EVENT_USERNAME:-electionhub_event_processor}"
 REPOSITORY_URL="${REPOSITORY_URL:-https://github.com/nasreddine-guellaf/ElectionHubProject.git}"
 CA_FILE="/opt/electionhub/eu-north-1-bundle.pem"
 WORK_DIR="/run/electionhub-bootstrap"
@@ -21,6 +22,7 @@ VENV_DIR="/opt/electionhub/venv"
 [[ "$DATABASE_NAME" =~ ^[a-z][a-z0-9_]{2,30}$ ]]
 [[ "$APPLICATION_USERNAME" =~ ^[a-z][a-z0-9_]{2,30}$ ]]
 [[ "$MIGRATOR_USERNAME" =~ ^[a-z][a-z0-9_]{2,30}$ ]]
+[[ "$EVENT_USERNAME" =~ ^[a-z][a-z0-9_]{2,30}$ ]]
 [[ "$ELECTIONHUB_COMMIT" =~ ^[0-9a-f]{40}$ ]]
 test -s "$CA_FILE"
 
@@ -55,6 +57,7 @@ cat > "$WORK_DIR/variables.sql" <<EOF
 \set application_password '$APPLICATION_PASSWORD'
 \set migrator_username '$MIGRATOR_USERNAME'
 \set migrator_password '$MIGRATOR_PASSWORD'
+\set event_username '$EVENT_USERNAME'
 \i $SOURCE_DIR/database/aws/bootstrap_roles.sql
 EOF
 
@@ -89,6 +92,7 @@ export POSTGRES_SSLROOTCERT="$CA_FILE"
 PGPASSWORD="$MIGRATOR_PASSWORD" PGSSLMODE=verify-full PGSSLROOTCERT="$CA_FILE" \
   psql --host "$RDS_ENDPOINT" --port 5432 --username "$MIGRATOR_USERNAME" \
   --dbname "$DATABASE_NAME" --set "application_username=$APPLICATION_USERNAME" \
+  --set "event_username=$EVENT_USERNAME" \
   --file "$SOURCE_DIR/database/aws/grant_runtime.sql"
 
 PGPASSWORD="$APPLICATION_PASSWORD" PGSSLMODE=verify-full PGSSLROOTCERT="$CA_FILE" \

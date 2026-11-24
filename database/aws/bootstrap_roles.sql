@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP on
 
 -- Required psql variables: database_name, application_username,
--- application_password, migrator_username, migrator_password.
+-- application_password, migrator_username, migrator_password, event_username.
 SELECT format(
   'CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
   :'application_username',
@@ -32,15 +32,35 @@ SELECT format(
 )
 \gexec
 
+SELECT format(
+  'CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
+  :'event_username'
+)
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'event_username')
+\gexec
+
+SELECT format(
+  'ALTER ROLE %I WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION',
+  :'event_username'
+)
+\gexec
+
+SELECT format('GRANT rds_iam TO %I', :'event_username')
+\gexec
+
 SELECT format('REVOKE ALL ON DATABASE %I FROM PUBLIC', :'database_name')
 \gexec
 SELECT format('GRANT CONNECT ON DATABASE %I TO %I', :'database_name', :'application_username')
 \gexec
 SELECT format('GRANT CONNECT ON DATABASE %I TO %I', :'database_name', :'migrator_username')
 \gexec
+SELECT format('GRANT CONNECT ON DATABASE %I TO %I', :'database_name', :'event_username')
+\gexec
 
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 SELECT format('GRANT USAGE ON SCHEMA public TO %I', :'application_username')
 \gexec
 SELECT format('GRANT USAGE, CREATE ON SCHEMA public TO %I', :'migrator_username')
+\gexec
+SELECT format('GRANT USAGE ON SCHEMA public TO %I', :'event_username')
 \gexec

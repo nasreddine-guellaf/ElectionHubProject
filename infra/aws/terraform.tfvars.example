@@ -7,9 +7,14 @@ enable_new_resources = false
 # Second safety gate: the short-lived SSM runner is never part of the base RDS plan.
 enable_test_runner = false
 
+# Third safety gate: Lambda PV and the bucket notification remain disabled until RDS exists.
+enable_pv_lambda = false
+
 rds_engine_version         = "16.15"
 rds_instance_class         = "db.t4g.micro"
 rds_backup_retention_days  = 7
 db_application_username    = "electionhub_app"
+db_event_username          = "electionhub_event_processor"
+pv_lambda_package_path     = "../../.local/build/lambda_pv.zip"
 test_runner_instance_type  = "t4g.micro"
 test_runner_ttl_hours      = 2

@@ -40,10 +40,11 @@ resource "aws_db_instance" "electionhub" {
   storage_type      = "gp3"
   storage_encrypted = true
 
-  db_name                     = var.db_name
-  username                    = var.db_master_username
-  manage_master_user_password = true
-  port                        = 5432
+  db_name                             = var.db_name
+  username                            = var.db_master_username
+  manage_master_user_password         = true
+  iam_database_authentication_enabled = true
+  port                                = 5432
 
   db_subnet_group_name   = aws_db_subnet_group.electionhub[0].name
   parameter_group_name   = aws_db_parameter_group.postgres16[0].name

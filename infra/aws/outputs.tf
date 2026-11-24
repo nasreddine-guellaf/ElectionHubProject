@@ -34,3 +34,13 @@ output "test_runner_instance_id" {
     aws_instance.test_runner[0].id
   ) : null
 }
+
+output "pv_lambda_arn" {
+  description = "ARN of the optional idempotent PV processor."
+  value       = try(aws_lambda_function.pv_processor[0].arn, null)
+}
+
+output "pv_lambda_dlq_arn" {
+  description = "ARN of the optional PV processor dead-letter queue."
+  value       = try(aws_sqs_queue.pv_lambda_dlq[0].arn, null)
+}

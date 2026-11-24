@@ -233,6 +233,7 @@ docker compose start db api
 - [Préparation AWS-3 : Terraform, IAM et RDS](docs/infrastructure/aws-3-plan.md)
 - [Préparation AWS-4A : backend TLS pour RDS](docs/infrastructure/aws-4a-backend-rds.md)
 - [Préparation AWS-4B : RDS privé et runner contrôlé](docs/infrastructure/aws-4b-rds-plan.md)
+- [Préparation AWS-5A : Lambda PV idempotente](docs/infrastructure/aws-5a-lambda-pv.md)
 
 **IMPLÉMENTÉ :** application React responsive, cycle des PV, validation humaine, RBAC,
 administration, consultation citoyenne et pièces justificatives privées PDF/JPEG/PNG.

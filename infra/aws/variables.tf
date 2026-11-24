@@ -100,6 +100,34 @@ variable "db_application_username" {
   }
 }
 
+variable "db_event_username" {
+  description = "Passwordless PostgreSQL login used only by Lambda PV through RDS IAM auth."
+  type        = string
+  default     = "electionhub_event_processor"
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9_]{2,30}$", var.db_event_username))
+    error_message = "db_event_username must be a simple lowercase PostgreSQL identifier."
+  }
+}
+
+variable "enable_pv_lambda" {
+  description = "Plans Lambda PV and its S3 notification. Requires the RDS foundation and a local ZIP."
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = !var.enable_pv_lambda || var.enable_new_resources
+    error_message = "enable_pv_lambda requires enable_new_resources=true."
+  }
+}
+
+variable "pv_lambda_package_path" {
+  description = "Path, relative to infra/aws, to the locally built and ignored Lambda ZIP."
+  type        = string
+  default     = "../../.local/build/lambda_pv.zip"
+}
+
 variable "test_runner_instance_type" {
   description = "Short-lived ARM64 EC2 size used only for migration and TLS qualification."
   type        = string

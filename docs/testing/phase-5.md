@@ -6,7 +6,9 @@ de l'adaptateur Amazon S3 dans la région `eu-north-1`.
 | Vérification | Résultat |
 |---|---|
 | Tests documentaires backend | **8 tests réussis** |
-| Suite backend complète | **117 tests réussis**, 1 avertissement de dépendance |
+| Suite backend complète | **127 tests réussis**, 2 avertissements de dépendances |
+| Tests Lambda PV | **10 tests réussis** : doublon, intégrité, reprise et validation d'événement |
+| Artefact Lambda Linux | import réel de psycopg 3.3.9 et Boto3 1.44.9 en conteneur réussi |
 | Tests frontend | **19 tests réussis** après ajout du scénario multipart |
 | Build TypeScript/Vite | Réussi |
 | Ruff et contrôle de format | Réussis |
@@ -31,6 +33,6 @@ pour l'utilisateur non privilégié de l'API.
 
 L'adaptateur S3 est maintenant qualifié contre le compte AWS de démonstration. La dépendance
 `botocore[crt]` permet à Boto3 de consommer les identifiants temporaires créés par
-`aws login`. Lambda PV, RDS, Lambda OTP, SNS, les incidents et les tests de reprise restent
-à faire. L'avertissement restant provient de la dépréciation du client de test Starlette ;
-aucun test n'échoue.
+`aws login`. Lambda PV est préparée et testée hors AWS, avec un plan non appliqué ; sa qualification
+réelle dépend encore de RDS. Lambda OTP, SNS, les incidents et les tests de reprise déployés restent
+à faire. Les avertissements proviennent de dépendances de test ; aucun test n'échoue.
