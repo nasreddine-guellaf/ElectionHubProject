@@ -16,8 +16,8 @@ vote électronique.
 | 3 | Authentification et autorisation | ✅ Terminée | Sessions, RBAC, OTP citoyen simulé et audit |
 | 4 | Application web | ✅ Terminée | Application React locale unique pour tous les profils |
 | 5 | Données et événements AWS | 🚧 En cours | S3 opérationnel ; RDS privé déployé et vérifié ; intégration serverless B à faire |
-| 6 | Backend principal GCP | 🟡 Prête à démarrer | Lot préparatoire attribuable à Ayman ; déploiement bloqué par les accès GCP et RDS |
-| 7 | Déploiement Azure | 🟡 Prête à démarrer | Lot préparatoire attribuable à Ayman ; déploiement bloqué par les accès Azure et l'URL GCP |
+| 6 | Backend principal GCP | 🚧 Préparation hors ligne faite | [Terraform](infrastructure/phase-6-gcp.md) validé hors ligne et tests de conteneur ; restent les accès GCP et la connectivité privée vers RDS |
+| 7 | Déploiement Azure | 🚧 Préparation hors ligne faite | [Nginx configurable](infrastructure/phase-7-azure.md), Terraform validé hors ligne et tests de conteneur ; déploiement bloqué par les accès Azure et l'URL GCP |
 | 8 | Analytique et publication | ⏳ À faire | BigQuery, synchronisation et Looker Studio |
 | 9 | Sécurité, secours et résilience | 🚧 En cours | API de secours EC2 qualifiée via SSM, basculement GCP à faire |
 | 10 | Recette finale et documentation | ⏳ À faire | Tests multi-cloud de bout en bout et démonstration académique |
@@ -26,12 +26,9 @@ Progression fonctionnelle : **4 phases terminées sur 10, phase 5 en cours**. Ce
 de l'effort total est consommé : les déploiements et interconnexions multi-cloud restantes
 comportent davantage de dépendances externes, de sécurité et de validation.
 
-État de passage au 24 novembre 2026 : le produit local des phases 1 à 4 fonctionne, le stockage
-documentaire S3 réel est qualifié et le backend est prêt pour une connexion RDS PostgreSQL 16
-avec TLS `verify-full`. Aucune instance RDS, ressource GCP ou ressource Azure n'est encore
-déployée. Les phases 6 et 7 peuvent cependant commencer en parallèle sur une branche dédiée,
-sans attendre la création de RDS, en préparant l'infrastructure, les images, la configuration,
-les tests et les procédures de déploiement.
+Le produit local des phases 1 à 4 fonctionne. Le stockage S3, RDS PostgreSQL 16 privé
+avec TLS `verify-full` et l'API de secours EC2 sont qualifiés. Les phases 6 et 7 ont
+franchi leur jalon de préparation hors ligne. Le déploiement sur GCP et Azure reste à faire.
 
 ## Passation à Ayman — phases 6 et 7
 
@@ -194,8 +191,8 @@ sont suivis dans le dossier d'intégration ci-dessus.
 
 ### Phase 6 — Backend principal GCP
 
-**Responsable proposé : Ayman. Statut : prête à démarrer en préparation hors ligne ; aucun
-déploiement GCP effectué.**
+**Responsable : Ayman. Préparation hors ligne terminée.** Voir le
+[guide GCP](infrastructure/phase-6-gcp.md) et les [tests](testing/phase-6.md).
 
 État transmis : FastAPI possède une image Docker non privilégiée, une sonde `/health`, des
 migrations Alembic et 134 tests backend réussis. Le backend sait utiliser S3 par la chaîne
@@ -204,7 +201,7 @@ d'identifiants standard AWS. La connexion PostgreSQL accepte désormais un bundl
 réseau, registre d'images, service account, secret, VM, MIG, load balancer ou NAT GCP n'a été
 créé ; aucun chemin GCP→RDS n'est donc disponible.
 
-Travail qu'Ayman peut réaliser immédiatement avec Codex, sans accès cloud :
+Périmètre de la préparation hors ligne et points à vérifier avant déploiement :
 
 1. Créer un module reproductible sous `infra/gcp/` pour préparer l'API Compute Engine :
    Artifact Registry, service account minimal, Secret Manager, modèle d'instance, Managed
@@ -243,16 +240,15 @@ réel.
 
 ### Phase 7 — Déploiement Azure
 
-**Responsable proposé : Ayman. Statut : prête à démarrer en préparation hors ligne ; aucun
-déploiement Azure effectué.**
+**Responsable : Ayman. Préparation hors ligne terminée.** Voir le
+[guide Azure](infrastructure/phase-7-azure.md) et les [tests](testing/phase-7.md).
 
 État transmis : le portail React/TypeScript unique couvre citoyen, agent, administrateur et
 validateur. Sa production est une image Nginx non privilégiée avec `/healthz`. Le navigateur
-appelle actuellement `/api/v1` sur la même origine et Nginx transmet `/api/` au service Docker
-local `api:8000`. Cette image est adaptée au principe d'un seul App Service, mais son upstream
-est encore statique ; aucune souscription, ressource, identité ou URL Azure n'est configurée.
+appelle `/api/v1` sur la même origine. Nginx utilise un upstream configurable
+et conserve `api:8000` pour Docker Compose. La configuration Azure réelle reste à valider.
 
-Travail qu'Ayman peut réaliser immédiatement avec Codex, sans accès cloud :
+Périmètre de la préparation hors ligne et points à vérifier avant déploiement :
 
 1. Rendre l'upstream Nginx configurable au démarrage, par exemple avec une variable
    `API_UPSTREAM`, sans inscrire l'URL GCP dans le bundle React. Conserver les appels navigateur

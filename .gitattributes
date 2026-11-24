@@ -1,0 +1,6 @@
+# Fichiers exécutés sous Linux (VM, conteneurs, Terraform templatefile) : toujours en LF,
+# même après un clonage sous Windows avec core.autocrlf=true. Sinon bash échoue sur « \r ».
+*.sh text eol=lf
+*.tftpl text eol=lf
+*.template text eol=lf
+Dockerfile text eol=lf

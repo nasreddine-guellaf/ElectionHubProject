@@ -1,0 +1,125 @@
+#!/bin/bash
+# Démarrage d'une instance API ElectionHub (Debian 12). Rendu par Terraform templatefile().
+# Principes : aucun secret dans les métadonnées ni dans l'image ; les secrets sont lus depuis
+# Secret Manager avec l'identité de l'instance et écrits sous /run (mémoire). Cette étape ne
+# lance JAMAIS de migration : voir infra/gcp/scripts/migrate.sh.
+set -euo pipefail
+exec > >(tee -a /var/log/electionhub-startup.log) 2>&1
+
+PROJECT="${project_id}"
+IMAGE="${image}"
+SECRETS_DIR=/run/electionhub
+TOKEN_DIR=/run/electionhub-token
+CA_FILE=/etc/electionhub/rds-ca.pem
+
+echo "[startup] installation de Docker"
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y
+apt-get install -y --no-install-recommends docker.io ca-certificates curl
+systemctl enable --now docker
+
+install -d -m 0700 "$SECRETS_DIR"
+install -d -m 0755 "$TOKEN_DIR" /etc/electionhub
+
+echo "[startup] lecture des secrets"
+umask 077
+PGPASS="$(gcloud secrets versions access latest --secret="${password_secret}" --project="$PROJECT" | tr -d '\r\n')"
+if [ -z "$PGPASS" ]; then
+  echo "[startup] ERREUR : le secret ${password_secret} est vide" >&2
+  exit 1
+fi
+gcloud secrets versions access latest --secret="${ca_secret}" --project="$PROJECT" > "$CA_FILE"
+if ! grep -q "BEGIN CERTIFICATE" "$CA_FILE"; then
+  echo "[startup] ERREUR : le secret ${ca_secret} ne contient pas de certificat" >&2
+  exit 1
+fi
+chmod 0444 "$CA_FILE"
+
+cat > "$SECRETS_DIR/api.env" <<ENV
+APP_ENV=cloud
+POSTGRES_HOST=${postgres_host}
+POSTGRES_PORT=${postgres_port}
+POSTGRES_DB=${postgres_db}
+POSTGRES_USER=${postgres_user}
+POSTGRES_PASSWORD=$PGPASS
+POSTGRES_SSLMODE=verify-full
+POSTGRES_SSLROOTCERT=/etc/electionhub/rds-ca.pem
+POSTGRES_POOL_SIZE=${postgres_pool_size}
+POSTGRES_MAX_OVERFLOW=${postgres_max_overflow}
+UVICORN_WORKERS=${api_workers}
+MOCK_SMS_DIRECTORY=/tmp/electionhub-sms
+OBJECT_STORAGE_BACKEND=s3
+AWS_REGION=${aws_region}
+S3_BUCKET=${s3_bucket}
+AWS_ROLE_ARN=${aws_role_arn}
+AWS_ROLE_SESSION_NAME=electionhub-api-gcp
+AWS_WEB_IDENTITY_TOKEN_FILE=/var/run/aws/token
+ENV
+chmod 0600 "$SECRETS_DIR/api.env"
+unset PGPASS
+umask 022
+
+echo "[startup] jeton d'identité pour AWS (identifiants temporaires, aucune clé durable)"
+cat > /usr/local/bin/electionhub-aws-token <<'TOKENSCRIPT'
+#!/bin/bash
+# Obtient un jeton OIDC Google pour le compte de service de l'instance et l'écrit
+# atomiquement dans un répertoire monté en lecture seule dans le conteneur.
+set -euo pipefail
+AUDIENCE="$1"
+DEST="$2"
+URL="http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity"
+TMP="$(mktemp "$DEST.XXXXXX")"
+curl -fsS -H "Metadata-Flavor: Google" --get \
+  --data-urlencode "audience=$AUDIENCE" --data-urlencode "format=full" "$URL" > "$TMP"
+chmod 0444 "$TMP"
+mv -f "$TMP" "$DEST"
+TOKENSCRIPT
+chmod 0755 /usr/local/bin/electionhub-aws-token
+/usr/local/bin/electionhub-aws-token "${aws_token_audience}" "$TOKEN_DIR/token"
+
+cat > /etc/systemd/system/electionhub-aws-token.service <<'UNIT'
+[Unit]
+Description=Refresh the Google OIDC token used to assume the AWS role
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/electionhub-aws-token ${aws_token_audience} /run/electionhub-token/token
+UNIT
+cat > /etc/systemd/system/electionhub-aws-token.timer <<'UNIT'
+[Unit]
+Description=Refresh the AWS web identity token every 10 minutes
+[Timer]
+OnUnitActiveSec=10min
+OnBootSec=10min
+[Install]
+WantedBy=timers.target
+UNIT
+
+echo "[startup] authentification Artifact Registry et récupération de l'image"
+gcloud auth configure-docker "${region}-docker.pkg.dev" --quiet
+docker pull "$IMAGE"
+
+cat > /etc/systemd/system/electionhub-api.service <<UNIT
+[Unit]
+Description=ElectionHub API container
+After=docker.service network-online.target
+Requires=docker.service
+[Service]
+Restart=always
+RestartSec=5
+ExecStartPre=-/usr/bin/docker rm -f electionhub-api
+ExecStart=/usr/bin/docker run --rm --name electionhub-api \\
+  --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \\
+  --pids-limit 256 -p ${api_port}:8000 \\
+  --env-file /run/electionhub/api.env \\
+  -v /etc/electionhub/rds-ca.pem:/etc/electionhub/rds-ca.pem:ro \\
+  -v /run/electionhub-token:/var/run/aws:ro \\
+  $IMAGE
+ExecStop=/usr/bin/docker stop electionhub-api
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now electionhub-aws-token.timer
+systemctl enable --now electionhub-api.service
+echo "[startup] terminé"

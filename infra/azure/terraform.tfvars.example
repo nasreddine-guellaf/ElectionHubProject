@@ -1,0 +1,10 @@
+# Copier vers terraform.tfvars (ignoré par Git). Valeurs d'exemple : à remplacer.
+subscription_id        = "00000000-0000-0000-0000-000000000000"
+location               = "swedencentral"
+container_registry_url = "https://registry.example.io"
+container_image_name   = "electionhub/web"
+container_image_tag    = "0.1.0"
+api_upstream           = "https://api.example.org"
+api_host_header        = "api.example.org"
+# acr_resource_id      = "/subscriptions/<id>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<name>"
+enable_new_resources   = false

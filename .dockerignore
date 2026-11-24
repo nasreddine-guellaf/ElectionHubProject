@@ -3,6 +3,9 @@
 .env.*
 .venv
 .local
+**/.terraform
+**/*.tfstate
+**/*.tfstate.*
 **/__pycache__
 **/.pytest_cache
 **/.ruff_cache
