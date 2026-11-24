@@ -14,3 +14,13 @@ node_modules/
 dist/
 .DS_Store
 Thumbs.db
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

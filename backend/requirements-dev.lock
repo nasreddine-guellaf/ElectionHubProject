@@ -26,6 +26,10 @@ argon2-cffi-bindings==26.2.0
     # via
     #   -c backend/requirements.lock
     #   argon2-cffi
+awscrt==0.38.0
+    # via
+    #   -c backend/requirements.lock
+    #   botocore
 boto3==1.44.9
     # via
     #   -c backend/requirements.lock
@@ -33,10 +37,12 @@ boto3==1.44.9
 botocore==1.44.9
     # via
     #   -c backend/requirements.lock
+    #   electionhub-backend (backend/pyproject.toml)
     #   boto3
     #   s3transfer
 certifi==2026.10.23
     # via
+    #   electionhub-backend (backend/pyproject.toml)
     #   httpcore
     #   httpx
 cffi==2.1.1

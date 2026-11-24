@@ -43,12 +43,8 @@ def upgrade():
             "processing_status IN ('STORED','PROCESSED','FAILED')",
             name="ck_document_processing_status",
         ),
-        sa.CheckConstraint(
-            "storage_provider IN ('LOCAL','S3')", name="ck_document_provider"
-        ),
-        sa.CheckConstraint(
-            "size_bytes > 0 AND size_bytes <= 26214400", name="ck_document_size"
-        ),
+        sa.CheckConstraint("storage_provider IN ('LOCAL','S3')", name="ck_document_provider"),
+        sa.CheckConstraint("size_bytes > 0 AND size_bytes <= 26214400", name="ck_document_size"),
         sa.CheckConstraint("length(sha256) = 64", name="ck_document_sha256"),
         sa.ForeignKeyConstraint(["revision_id"], ["report_revisions.id"]),
         sa.ForeignKeyConstraint(["uploaded_by"], ["user_references.id"]),
@@ -74,16 +70,12 @@ def upgrade():
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.CheckConstraint(
-            "length(trim(provider_event_id)) > 0", name="ck_object_event_id"
-        ),
+        sa.CheckConstraint("length(trim(provider_event_id)) > 0", name="ck_object_event_id"),
         sa.ForeignKeyConstraint(["document_id"], ["report_documents.id"]),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("provider_event_id"),
     )
-    op.create_index(
-        op.f("ix_object_events_document_id"), "object_events", ["document_id"]
-    )
+    op.create_index(op.f("ix_object_events_document_id"), "object_events", ["document_id"])
 
 
 def downgrade():

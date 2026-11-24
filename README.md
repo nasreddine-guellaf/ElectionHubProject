@@ -84,6 +84,14 @@ au backend. Les liens profonds sont pris en charge, le système de fichiers est 
 seule et des en-têtes de sécurité encadrent le navigateur. Voir le
 [guide frontend phase 4](docs/api/phase-4.md).
 
+### PostgreSQL local et cible RDS
+
+Le développement local conserve `POSTGRES_SSLMODE=disable`. Une cible RDS ou
+`APP_ENV=cloud` exige `POSTGRES_SSLMODE=verify-full` et `POSTGRES_SSLROOTCERT` vers un
+bundle CA valide. SQLAlchemy utilise un pool borné configurable ; les valeurs par défaut
+sont 5 connexions persistantes et 5 connexions de débordement au maximum par processus.
+Voir la [préparation backend AWS-4A](docs/infrastructure/aws-4a-backend-rds.md).
+
 Pour développer l'interface avec rechargement automatique, laisser l'API sur le port 8000 :
 
 ```powershell
@@ -221,14 +229,17 @@ docker compose start db api
 - [Vérifications de la phase 4](docs/testing/phase-4.md)
 - [Phase 5 en cours : stockage documentaire et adaptateur S3](docs/api/phase-5.md)
 - [Vérifications intermédiaires de la phase 5](docs/testing/phase-5.md)
+- [Préparation AWS-3 : Terraform, IAM et RDS](docs/infrastructure/aws-3-plan.md)
+- [Préparation AWS-4A : backend TLS pour RDS](docs/infrastructure/aws-4a-backend-rds.md)
 
 **IMPLÉMENTÉ :** application React responsive, cycle des PV, validation humaine, RBAC,
 administration, consultation citoyenne et pièces justificatives privées PDF/JPEG/PNG.
 Le backend reste l'autorité pour chaque permission.
-**TESTÉ :** build de production, 19 tests frontend, 107 tests backend, migration 0004,
+**TESTÉ :** build de production, 19 tests frontend, 117 tests backend, migration 0004,
 stack Docker, volume documentaire, dépôt, téléchargement et suppression d'un PDF fictif.
-**PLANIFIÉ :** qualification du bucket S3, RDS, Lambda PV, Lambda OTP et SNS pendant la
-suite de la phase 5, puis analytics, publication et autres interconnexions cloud.
+**QUALIFIÉ SUR AWS :** bucket S3 privé, chiffrement, versioning et parcours documentaire.
+**PLANIFIÉ SANS PROVISIONNEMENT :** adoption Terraform du bucket, rôle applicatif minimal,
+VPC et RDS PostgreSQL 16. Lambda PV, Lambda OTP et SNS suivent dans la phase 5.
 
 Pour vérifier les sessions sans modifier `.env`, après seed et bootstrap, depuis la racine :
 
@@ -242,6 +253,6 @@ scrutin, révoque ses sessions et arrête le serveur. Des événements d'audit s
 Sous WSL : `.venv/bin/python scripts/smoke_phase3.py`. Les limites de connexion s'appliquent
 aussi au script ; attendre leur expiration après plusieurs exécutions rapprochées.
 
-Prochain jalon : provisionner et qualifier le bucket S3 privé, puis Lambda PV et RDS, après
-validation du compte AWS, de la région et du budget. Lambda OTP et SNS suivront dans la
-même phase. Aucun déploiement cloud ni SMS réel à ce stade.
+Prochain jalon : installer Terraform, valider le plan d'import S3 sans changement puis
+implémenter TLS RDS côté backend. Aucun `terraform apply`, RDS, Lambda ou SMS réel ne doit
+être lancé sans validation explicite du plan, de la connectivité et du budget.

@@ -12,10 +12,20 @@ class Base(DeclarativeBase):
 
 
 def create_db_engine(settings: Settings) -> Engine:
+    connect_args: dict[str, str | int] = {
+        "connect_timeout": settings.postgres_connect_timeout_seconds,
+        "sslmode": settings.postgres_sslmode,
+    }
+    if settings.postgres_sslrootcert is not None:
+        connect_args["sslrootcert"] = str(settings.postgres_sslrootcert)
     return create_engine(
         settings.database_url,
         pool_pre_ping=True,
-        connect_args={"connect_timeout": 3},
+        pool_size=settings.postgres_pool_size,
+        max_overflow=settings.postgres_max_overflow,
+        pool_timeout=settings.postgres_pool_timeout_seconds,
+        pool_recycle=settings.postgres_pool_recycle_seconds,
+        connect_args=connect_args,
         hide_parameters=True,
     )
 

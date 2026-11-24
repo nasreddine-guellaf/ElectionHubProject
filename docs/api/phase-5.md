@@ -1,12 +1,12 @@
 # Stockage documentaire et adaptateurs AWS — Phase 5 en cours
 
-La première tranche de la phase 5 ajoute le stockage privé des pièces justificatives sans
-créer de ressource AWS. Elle conserve les binaires hors de PostgreSQL et permet de choisir
-le provider par configuration.
+La première tranche de la phase 5 ajoute le stockage privé des pièces justificatives.
+Elle conserve les binaires hors de PostgreSQL, permet de choisir le provider par
+configuration et a été qualifiée contre le bucket S3 ElectionHub en `eu-north-1`.
 
 ## État actuel
 
-**Implémenté et testé localement :**
+**Implémenté et testé localement et sur S3 :**
 
 - migration `0004_private_documents` ;
 - métadonnées, taille, type MIME, empreinte SHA-256 et état de traitement ;
@@ -20,9 +20,16 @@ le provider par configuration.
 - lecture/téléchargement soumis au même RBAC que le dossier PV ;
 - événements d'audit `DOCUMENT_UPLOADED` et `DOCUMENT_DELETED` ;
 - table `object_events` préparée pour la déduplication des événements Lambda PV.
+- authentification Boto3 par profil temporaire `aws login`, sans clé dans le projet ;
+- bucket S3 privé : blocage public complet, propriété forcée au propriétaire,
+  chiffrement SSE-S3, versioning actif et politique refusant les transports non TLS ;
+- smoke test répétable via `scripts/smoke_s3.py` : dépôt, lecture, comparaison SHA-256,
+  inspection S3, suppression par l'API et purge des seules versions temporaires.
+- préparation RDS : TLS `verify-full` obligatoire en cloud, CA validée et pool SQLAlchemy
+  borné, sans changer le workflow PostgreSQL 16 local.
 
-**Pas encore déployé ni testé sur AWS :** bucket S3, politiques IAM, notifications S3,
-Lambda PV, RDS, Lambda OTP et SNS. Le statut `STORED` indique seulement que l'adaptateur a
+**Pas encore déployé ni testé sur AWS :** Infrastructure as Code et rôles IAM minimaux,
+notifications S3, Lambda PV, RDS, Lambda OTP et SNS. Le statut `STORED` indique seulement que l'adaptateur a
 accepté le fichier ; il ne prétend pas qu'une Lambda l'a traité.
 
 ## Configuration
@@ -35,11 +42,11 @@ LOCAL_OBJECT_DIRECTORY=.local/objects
 OBJECT_UPLOAD_MAX_BYTES=10485760
 ```
 
-La future activation S3 utilisera :
+L'activation S3 utilise :
 
 ```dotenv
 OBJECT_STORAGE_BACKEND=s3
-AWS_REGION=eu-west-3
+AWS_REGION=eu-north-1
 S3_BUCKET=<nom-du-bucket-prive>
 ```
 
@@ -73,5 +80,5 @@ contrôle d'accès du backend.
 2. Écrire l'Infrastructure as Code du bucket privé, des rôles et des notifications.
 3. Implémenter Lambda PV et le traitement idempotent de `object_events`.
 4. Ajouter les incidents et leurs photographies.
-5. Préparer RDS et tester la migration/restauration avec TLS.
+5. Provisionner RDS après approbation, monter la CA puis tester Alembic et la restauration.
 6. Remplacer le simulateur OTP par Lambda OTP + SNS dans un sandbox approuvé.

@@ -1,0 +1,9 @@
+aws_account_id         = "123456789012"
+existing_s3_bucket_name = "electionhub-demo-123456789012-eu-north-1"
+
+# Safety gate: leave false for the initial S3 import-only plan.
+enable_new_resources = false
+
+# Keep RDS private until a concrete connectivity path is approved.
+rds_publicly_accessible = false
+postgres_ingress_cidrs  = []

@@ -14,10 +14,13 @@ argon2-cffi==25.1.0
     # via electionhub-backend (backend/pyproject.toml)
 argon2-cffi-bindings==26.2.0
     # via argon2-cffi
+awscrt==0.38.0
+    # via botocore
 boto3==1.44.9
     # via electionhub-backend (backend/pyproject.toml)
 botocore==1.44.9
     # via
+    #   electionhub-backend (backend/pyproject.toml)
     #   boto3
     #   s3transfer
 cffi==2.1.1

@@ -1,12 +1,12 @@
-# Vérifications phase 5 — tranche stockage local
+# Vérifications phase 5 — stockage local et Amazon S3
 
-Date : 22 novembre 2026. Cette recette couvre le socle logiciel de la phase 5, pas un
-déploiement AWS réel.
+Date : 23 novembre 2026. Cette recette couvre le socle logiciel et la qualification réelle
+de l'adaptateur Amazon S3 dans la région `eu-north-1`.
 
 | Vérification | Résultat |
 |---|---|
 | Tests documentaires backend | **8 tests réussis** |
-| Suite backend complète | **107 tests réussis**, 2 avertissements de dépendances |
+| Suite backend complète | **117 tests réussis**, 1 avertissement de dépendance |
 | Tests frontend | **19 tests réussis** après ajout du scénario multipart |
 | Build TypeScript/Vite | Réussi |
 | Ruff et contrôle de format | Réussis |
@@ -14,6 +14,10 @@ déploiement AWS réel.
 | `alembic check` | Aucun changement de schéma manquant |
 | Stack Docker | PostgreSQL, API et web sains ; migration et initialisation du volume terminées avec code 0 |
 | Smoke test via `127.0.0.1:3000` | Dépôt 201, téléchargement 200, contenu identique, suppression 204 |
+| Authentification Boto3 | Compte attendu et profil temporaire `electionhub-demo` validés |
+| Configuration du bucket | Région correcte, SSE-S3, versioning, blocage public complet, `BucketOwnerEnforced` et refus du transport non TLS |
+| Smoke test S3 via l'API | Dépôt 201, lecture 200, SHA-256 identique, suppression 204 |
+| Nettoyage du test S3 | Delete marker et version temporaire ciblés puis purgés ; aucune donnée existante supprimée |
 
 Les tests couvrent dépôt, empreinte, métadonnées non sensibles, téléchargement privé,
 suppression, permissions, immutabilité après soumission, conservation par révision, taille, type MIME, signature de
@@ -25,7 +29,8 @@ l'agent de démonstration, le relit derrière le proxy, compare les octets puis 
 Le volume reste privé et inscriptible uniquement après l'initialisation de ses permissions
 pour l'utilisateur non privilégié de l'API.
 
-Limite actuelle : l'adaptateur S3 est implémenté mais n'est pas qualifié contre un compte
-AWS. Lambda PV, RDS, Lambda OTP, SNS, les incidents et les tests de reprise restent à faire.
-Les avertissements observés proviennent de la dépréciation du client de test Starlette et
-d'un attribut de schéma Pydantic sans effet pendant un test concurrent ; aucun test n'échoue.
+L'adaptateur S3 est maintenant qualifié contre le compte AWS de démonstration. La dépendance
+`botocore[crt]` permet à Boto3 de consommer les identifiants temporaires créés par
+`aws login`. Lambda PV, RDS, Lambda OTP, SNS, les incidents et les tests de reprise restent
+à faire. L'avertissement restant provient de la dépréciation du client de test Starlette ;
+aucun test n'échoue.
