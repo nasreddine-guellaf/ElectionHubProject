@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+
+dnf install -y git jq openssl postgresql16 python3.11 python3.11-pip
+systemctl enable --now amazon-ssm-agent
+
+install -d -m 0755 /opt/electionhub
+curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+  https://truststore.pki.rds.amazonaws.com/eu-north-1/eu-north-1-bundle.pem \
+  --output /opt/electionhub/eu-north-1-bundle.pem
+grep -q -- '-----BEGIN CERTIFICATE-----' /opt/electionhub/eu-north-1-bundle.pem
+chmod 0644 /opt/electionhub/eu-north-1-bundle.pem
+
+cat > /opt/electionhub/README <<'EOF'
+This instance is a temporary ElectionHub RDS migration and TLS qualification runner.
+It accepts no inbound traffic. Use AWS Systems Manager Session Manager or Run Command.
+The RDS CA bundle is /opt/electionhub/eu-north-1-bundle.pem.
+EOF
+
+touch /opt/electionhub/READY
+shutdown -h +${ttl_minutes}

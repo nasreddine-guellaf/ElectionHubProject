@@ -16,7 +16,7 @@ def test_health_checks_database_and_migration(client):
     assert response.json() == {
         "status": "ok",
         "database": "ok",
-        "schema_version": "0004_private_documents",
+        "schema_version": "0005_incidents",
         "environment": "test",
     }
 

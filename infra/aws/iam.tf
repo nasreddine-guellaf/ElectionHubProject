@@ -33,7 +33,7 @@ data "aws_iam_policy_document" "application_s3" {
   }
 
   statement {
-    sid    = "ReadAndDeleteReportObjects"
+    sid    = "ReadAndDeleteApplicationObjects"
     effect = "Allow"
     actions = [
       "s3:AbortMultipartUpload",
@@ -41,14 +41,20 @@ data "aws_iam_policy_document" "application_s3" {
       "s3:GetObject",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.documents.arn}/reports/*"]
+    resources = [
+      "${aws_s3_bucket.documents.arn}/reports/*",
+      "${aws_s3_bucket.documents.arn}/incidents/*",
+    ]
   }
 
   statement {
-    sid       = "UploadEncryptedReportObjects"
-    effect    = "Allow"
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.documents.arn}/reports/*"]
+    sid     = "UploadEncryptedApplicationObjects"
+    effect  = "Allow"
+    actions = ["s3:PutObject"]
+    resources = [
+      "${aws_s3_bucket.documents.arn}/reports/*",
+      "${aws_s3_bucket.documents.arn}/incidents/*",
+    ]
 
     condition {
       test     = "StringEquals"
@@ -64,4 +70,80 @@ resource "aws_iam_role_policy" "application_s3" {
   name   = "ElectionHubPrivateDocuments"
   role   = aws_iam_role.application[0].id
   policy = data.aws_iam_policy_document.application_s3.json
+}
+
+data "aws_iam_policy_document" "test_runner_trust" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "test_runner" {
+  count = var.enable_new_resources && var.enable_test_runner ? 1 : 0
+
+  name               = "ElectionHubTestRunnerRole"
+  path               = "/electionhub/"
+  description        = "Temporary SSM runner for RDS TLS, role bootstrap, and Alembic qualification."
+  assume_role_policy = data.aws_iam_policy_document.test_runner_trust.json
+
+  tags = {
+    Environment = "demo"
+    Project     = "ElectionHub"
+    Temporary   = "true"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "test_runner_ssm" {
+  count = var.enable_new_resources && var.enable_test_runner ? 1 : 0
+
+  role       = aws_iam_role.test_runner[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+data "aws_iam_policy_document" "test_runner_database" {
+  count = var.enable_new_resources && var.enable_test_runner ? 1 : 0
+
+  statement {
+    sid     = "ReadRDSManagedBootstrapSecret"
+    effect  = "Allow"
+    actions = ["secretsmanager:DescribeSecret", "secretsmanager:GetSecretValue"]
+    resources = [
+      aws_db_instance.electionhub[0].master_user_secret[0].secret_arn,
+    ]
+  }
+
+  statement {
+    sid    = "WriteApplicationDatabaseSecret"
+    effect = "Allow"
+    actions = [
+      "secretsmanager:DescribeSecret",
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:PutSecretValue",
+    ]
+    resources = [
+      aws_secretsmanager_secret.application_database[0].arn,
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "test_runner_database" {
+  count = var.enable_new_resources && var.enable_test_runner ? 1 : 0
+
+  name   = "ElectionHubDatabaseBootstrap"
+  role   = aws_iam_role.test_runner[0].id
+  policy = data.aws_iam_policy_document.test_runner_database[0].json
+}
+
+resource "aws_iam_instance_profile" "test_runner" {
+  count = var.enable_new_resources && var.enable_test_runner ? 1 : 0
+
+  name = "ElectionHubTestRunner"
+  path = "/electionhub/"
+  role = aws_iam_role.test_runner[0].name
 }

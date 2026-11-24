@@ -3,6 +3,14 @@
 Date de vérification : 23 novembre 2026. Aucun composant n'a été provisionné pendant cette
 préparation et le bucket existant n'a pas été modifié.
 
+Les capacités et coûts relevés ici concernent le compte A de Nasr Eddine.
+La [stratégie à deux comptes](aws-two-accounts.md) conserve ce socle et ajoute
+une qualification distincte du compte B.
+
+> Ce document conserve l'étude AWS-3. Le plan exécutable courant est désormais
+> [AWS-4B](aws-4b-rds-plan.md) : RDS reste strictement privé et l'option d'endpoint public
+> décrite ci-dessous a été abandonnée.
+
 ## Compte et capacités vérifiées
 
 - compte `FREE` actif, région imposée `eu-north-1` ;
@@ -11,14 +19,13 @@ préparation et le bucket existant n'a pas été modifié.
 - aucun RDS existant ; quotas : 40 instances RDS, 50 groupes de sous-réseaux et 5 VPC ;
 - PostgreSQL 16.15 et `db.t4g.micro` disponibles dans la région ;
 - trois sous-réseaux existent dans le VPC par défaut, mais le plan utilise un VPC dédié ;
-- Terraform n'est pas installé localement. Il pourra utiliser le profil temporaire
-  `electionhub-demo`, mais les opérations de création ne seront prouvées qu'après un plan
-  validé puis une autorisation explicite d'appliquer.
+- Terraform 1.17.2 est maintenant installé sous `.local/tools` et reste hors du dépôt.
 
 La configuration a été validée avec Terraform 1.17.2 et le provider AWS 6.73.0 depuis
 un binaire temporaire officiel dont le SHA-256 a été vérifié. Le plan S3 réel annonce
 **6 imports, 0 création, 0 modification et 0 destruction**. Le plan privé IAM/VPC/RDS
-annonce **6 imports et 14 créations, 0 modification et 0 destruction**. Aucun plan n'a
+annonce **6 imports et 13 créations, 0 modification et 0 destruction**. Le plan séparé incluant
+le runner temporaire annonce 27 créations. Aucun plan n'a
 été appliqué et aucun fichier d'état n'a été créé.
 
 Le rôle humain `managed/AccountFullAccessRole` possède `AdministratorAccess`. Il reste un
@@ -33,7 +40,7 @@ d'exécution de l'application.
 | Classe | `db.t4g.micro`, 2 vCPU burstables et 1 Gio RAM |
 | Disponibilité | Single-AZ |
 | Stockage | 20 Gio gp3, chiffré, sans autoscaling |
-| Sauvegardes | 1 jour ; stockage gratuit jusqu'au volume provisionné total de la région |
+| Sauvegardes | 7 jours ; stockage gratuit jusqu'au volume provisionné total de la région |
 | Observabilité payante | Performance Insights désactivé, enhanced monitoring désactivé |
 | TLS | `rds.force_ssl=1`, CA `rds-ca-rsa2048-g1`, client `verify-full` |
 | Protection | suppression protégée et snapshot final requis |
@@ -43,26 +50,18 @@ Estimation à 730 heures par mois, hors taxes et transferts :
 - instance : `730 × 0,016 USD` = **11,68 USD/mois** ;
 - stockage : `20 × 0,12 USD` = **2,40 USD/mois** ;
 - base privée minimale : **14,08 USD/mois** ;
-- secret maître géré par RDS/Secrets Manager : environ **0,40 USD/mois** hors appels ;
-- endpoint public filtré : ajouter une IPv4 à `0,005 USD/heure`, soit **3,65 USD/mois** ;
-- cible publique filtrée avec secret géré : environ **18,13 USD/mois**, plus trafic,
-  journaux, snapshots excédentaires et taxes éventuelles.
+- secret maître et secret applicatif : environ **0,80 USD/mois** hors appels ;
+- cible AWS-4B : environ **14,88 USD/mois**, plus trafic, journaux, snapshots excédentaires
+  et taxes éventuelles.
 
 Les crédits couvrent ces frais tant qu'ils restent disponibles, mais ils sont partagés avec
 les autres services AWS. Une base arrêtée conserve des coûts de stockage et de sauvegarde.
 
 ## Réseau et dépendance GCP
 
-Le compte simplifié ne permet pas AWS Site-to-Site VPN. Deux options restent donc ouvertes :
-
-1. garder RDS privé jusqu'à la préparation d'une connectivité autorisée ; cette option est
-   la plus sûre mais l'API GCP ne pourra pas encore s'y connecter ;
-2. pour la démonstration multi-cloud, activer un endpoint RDS public uniquement après avoir
-   réservé une IPv4 de sortie GCP fixe, puis autoriser exactement son `/32` dans le groupe
-   de sécurité et imposer TLS `verify-full`.
-
-Le plan Terraform choisit l'option 1 par défaut. Il refuse une base publique sans CIDR et
-refuse les CIDR universels.
+Le compte simplifié ne permet pas AWS Site-to-Site VPN. AWS-4B garde donc RDS privé sans
+exception. Le runner temporaire dans le VPC qualifie la base ; la future liaison GCP reste un
+blocage d'architecture et ne doit pas être contournée par un endpoint RDS public.
 
 ## IAM à privilèges minimaux
 
@@ -95,8 +94,7 @@ Alembic sur une base vide et prouver la restauration avant toute migration synth
 ## Risques et gardes-fous
 
 - **Coût** : RDS facture tant qu'il est disponible ; aucun `apply` avant budget accepté.
-- **Connectivité** : RDS privé n'est pas accessible depuis GCP sans chemin réseau ; un
-  endpoint public exige une sortie GCP fixe et une règle `/32`.
+- **Connectivité** : RDS privé n'est pas accessible depuis GCP sans chemin réseau approuvé.
 - **État Terraform** : l'import n'existe qu'après `apply` ; vérifier que le plan S3 contient
   des imports sans mise à jour ni destruction. `prevent_destroy` protège chaque ressource S3.
 - **Secrets** : le rôle administrateur et le compte maître DB ne sont pas des identités
@@ -116,7 +114,7 @@ Alembic sur une base vide et prouver la restauration avant toute migration synth
    appliquer, et comparer son coût au budget AWS.
 4. ~~Implémenter et tester le support TLS RDS dans FastAPI.~~ Terminé dans AWS-4A ; la
    qualification contre une instance RDS réelle reste bloquée jusqu'au provisionnement.
-5. Choisir la connectivité GCP : privée si le compte évolue, sinon IPv4 fixe + `/32`.
+5. Choisir une connectivité GCP privée prise en charge ; ne pas exposer RDS publiquement.
 6. Après approbation explicite seulement : importer S3 dans l'état, créer le rôle applicatif,
-   le VPC et RDS, créer l'utilisateur SQL applicatif, exécuter Alembic sur une base vide.
+   le VPC et RDS, puis utiliser le runner AWS-4B pour le compte SQL et Alembic.
 7. Effectuer une sauvegarde/restauration de données synthétiques avant toute migration.

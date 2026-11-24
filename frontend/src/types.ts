@@ -16,4 +16,6 @@ export interface ReportRow extends Report { revision: Revision }
 export interface ReportEvent { id: string; revision_id: string; actor_id: string; action: string; edit_version: number; note: string; created_at: string }
 export interface Validation { id: string; revision_id: string; validator_id: string; decision: string; reason: string; created_at: string }
 export interface ReportDocument { id: string; revision_id: string; uploaded_by: string; original_filename: string; media_type: string; size_bytes: number; sha256: string; storage_provider: 'LOCAL' | 'S3'; processing_status: 'STORED' | 'PROCESSED' | 'FAILED'; created_at: string; processed_at: string | null; failure_reason: string | null }
+export interface IncidentAttachment { id: string; incident_id: string; uploaded_by: string; original_filename: string; media_type: 'image/jpeg' | 'image/png'; size_bytes: number; sha256: string; storage_provider: 'LOCAL' | 'S3'; created_at: string }
+export interface Incident { id: string; revision_id: string; created_by: string; category: 'SECURITY' | 'MATERIAL' | 'ACCESS' | 'OTHER'; description: string; created_at: string; attachments: IncidentAttachment[] }
 export interface Audit { id: string; actor_id: string | null; target_id: string | null; action: string; resource: string | null; created_at: string }

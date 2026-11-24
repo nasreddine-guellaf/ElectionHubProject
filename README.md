@@ -6,7 +6,8 @@ Plateforme académique de consultation et consolidation des résultats par burea
 Le socle FastAPI/PostgreSQL, le domaine électoral, les sessions par rôle et l'application
 React unique sont opérationnels. La première tranche de phase 5 ajoute les pièces privées,
 un stockage local testable et un adaptateur S3 configurable. Les API métier exigent une
-**session Bearer**. Aucune ressource AWS, Azure, GCP ou Cloudflare n'est encore déployée.
+**session Bearer**. Le bucket S3 de démonstration existant est qualifié ; aucune autre
+ressource AWS et aucune ressource Azure, GCP ou Cloudflare ne sont déployées par le projet.
 
 ## Prérequis
 
@@ -43,7 +44,7 @@ Le seed est volontairement une commande distincte ; l'exécuter à nouveau ne cr
 Ouvrir [l'application web locale](http://127.0.0.1:3000). La documentation interactive
 de l'API reste disponible sur [le port 8000](http://127.0.0.1:8000/docs).
 La réponse `/health` doit contenir `status: ok`, `database: ok`,
-`schema_version: 0003_authentication`. La liste doit contenir `total: 3` et
+`schema_version: 0005_incidents`. La liste doit contenir `total: 3` et
 `data_kind: synthetic` après chargement initial.
 
 Le seed métier ajoute un scrutin fictif, trois listes, trois références utilisateur,
@@ -90,7 +91,8 @@ Le développement local conserve `POSTGRES_SSLMODE=disable`. Une cible RDS ou
 `APP_ENV=cloud` exige `POSTGRES_SSLMODE=verify-full` et `POSTGRES_SSLROOTCERT` vers un
 bundle CA valide. SQLAlchemy utilise un pool borné configurable ; les valeurs par défaut
 sont 5 connexions persistantes et 5 connexions de débordement au maximum par processus.
-Voir la [préparation backend AWS-4A](docs/infrastructure/aws-4a-backend-rds.md).
+Voir la [préparation backend AWS-4A](docs/infrastructure/aws-4a-backend-rds.md) et le
+[plan de déploiement privé RDS AWS-4B](docs/infrastructure/aws-4b-rds-plan.md).
 
 Pour développer l'interface avec rechargement automatique, laisser l'API sur le port 8000 :
 
@@ -172,7 +174,7 @@ et décide. ADMIN ne peut ni soumettre ni approuver un PV. Le citoyen authentifi
 ```text
 backend/
   app/                 Configuration, modèles, services métier, API, seeds
-  alembic/             Migrations additives des phases 1 à 3
+  alembic/             Migrations additives jusqu'aux documents et incidents de phase 5
   tests/               Tests API, PostgreSQL, migrations et configuration
   pyproject.toml       Dépendances directes et outils
   requirements*.lock   Versions exactes résolues pour ce jalon
@@ -227,19 +229,24 @@ docker compose start db api
 - [Vérifications de la phase 3](docs/testing/phase-3.md)
 - [Application web et parcours phase 4](docs/api/phase-4.md)
 - [Vérifications de la phase 4](docs/testing/phase-4.md)
-- [Phase 5 en cours : stockage documentaire et adaptateur S3](docs/api/phase-5.md)
+- [Phase 5 en cours : documents, incidents et adaptateur S3](docs/api/phase-5.md)
 - [Vérifications intermédiaires de la phase 5](docs/testing/phase-5.md)
 - [Préparation AWS-3 : Terraform, IAM et RDS](docs/infrastructure/aws-3-plan.md)
 - [Préparation AWS-4A : backend TLS pour RDS](docs/infrastructure/aws-4a-backend-rds.md)
+- [Préparation AWS-4B : RDS privé et runner contrôlé](docs/infrastructure/aws-4b-rds-plan.md)
+- [Préparation AWS-5A : Lambda PV idempotente](docs/infrastructure/aws-5a-lambda-pv.md)
+- [Architecture et contrats AWS à deux comptes](docs/infrastructure/aws-two-accounts.md)
+- [Démarrage de Badreddine sur le compte AWS B](docs/infrastructure/aws-account-b-onboarding.md)
 
 **IMPLÉMENTÉ :** application React responsive, cycle des PV, validation humaine, RBAC,
-administration, consultation citoyenne et pièces justificatives privées PDF/JPEG/PNG.
+administration, consultation citoyenne, pièces justificatives privées PDF/JPEG/PNG et
+incidents avec photographies privées JPEG/PNG.
 Le backend reste l'autorité pour chaque permission.
-**TESTÉ :** build de production, 19 tests frontend, 117 tests backend, migration 0004,
+**TESTÉ :** build de production, 20 tests frontend, 134 tests backend, migrations 0004/0005,
 stack Docker, volume documentaire, dépôt, téléchargement et suppression d'un PDF fictif.
 **QUALIFIÉ SUR AWS :** bucket S3 privé, chiffrement, versioning et parcours documentaire.
 **PLANIFIÉ SANS PROVISIONNEMENT :** adoption Terraform du bucket, rôle applicatif minimal,
-VPC et RDS PostgreSQL 16. Lambda PV, Lambda OTP et SNS suivent dans la phase 5.
+VPC, RDS PostgreSQL 16 et Lambda PV idempotente. Lambda OTP et SNS suivent dans la phase 5.
 
 Pour vérifier les sessions sans modifier `.env`, après seed et bootstrap, depuis la racine :
 

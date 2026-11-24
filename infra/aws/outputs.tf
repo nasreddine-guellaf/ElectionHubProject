@@ -22,3 +22,25 @@ output "rds_master_secret_arn" {
   ) : null
   sensitive = true
 }
+
+output "application_database_secret_arn" {
+  description = "Empty secret container populated by the controlled bootstrap runner."
+  value       = var.enable_new_resources ? aws_secretsmanager_secret.application_database[0].arn : null
+}
+
+output "test_runner_instance_id" {
+  description = "Temporary SSM runner ID when explicitly enabled."
+  value = var.enable_new_resources && var.enable_test_runner ? (
+    aws_instance.test_runner[0].id
+  ) : null
+}
+
+output "pv_lambda_arn" {
+  description = "ARN of the optional idempotent PV processor."
+  value       = try(aws_lambda_function.pv_processor[0].arn, null)
+}
+
+output "pv_lambda_dlq_arn" {
+  description = "ARN of the optional PV processor dead-letter queue."
+  value       = try(aws_sqs_queue.pv_lambda_dlq[0].arn, null)
+}

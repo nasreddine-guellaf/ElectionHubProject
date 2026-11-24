@@ -1,11 +1,11 @@
 import { beforeEach, expect, test, vi } from 'vitest';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { App } from '../App';
 import { createApi } from '../api';
 import { validateCounts } from '../reportValidation';
-import type { ReportDocument, Revision, Role } from '../types';
+import type { Incident, ReportDocument, Revision, Role } from '../types';
 
 const station = { id: 'station-1', code: 'DEMO-BV-001', name: 'Bureau fictif des Nuages', registered_voters: 100 };
 const election = { id: 'election-1', code: 'DEMO-ELECTION', name: 'Scrutin fictif', start_date: '2026-11-01', end_date: '2026-11-01', enforce_ballot_equation: true };
@@ -18,10 +18,11 @@ let otpDisabled: boolean;
 let forceConflict: boolean;
 let failReports: number;
 let documents: ReportDocument[];
+let incidents: Incident[];
 const page = (items: unknown[]) => ({ items, total: items.length, limit: 100, offset: 0 });
 const userFor = (role: Role) => ({ id: role.toLowerCase(), display_name: `${role} fictif`, role });
 beforeEach(() => {
-  revision = structuredClone(baseRevision); reportExists = true; calls = []; otpDisabled = false; forceConflict = false; failReports = 0; documents = [];
+  revision = structuredClone(baseRevision); reportExists = true; calls = []; otpDisabled = false; forceConflict = false; failReports = 0; documents = []; incidents = [];
   window.localStorage.clear(); window.sessionStorage.clear();
   vi.stubGlobal('fetch', vi.fn(async (input: string, options: RequestInit = {}) => {
     const url = new URL(input, 'http://localhost'); const path = url.pathname.replace('/api/v1', ''); const method = options.method || 'GET';
@@ -57,6 +58,17 @@ beforeEach(() => {
       documents = [document]; return ok(document, 201);
     }
     if (path === '/reports/report-1/revisions/1/documents/document-1' && method === 'DELETE') { documents = []; return ok(null, 204); }
+    if (path === '/reports/report-1/revisions/1/incidents' && method === 'GET') return ok(incidents);
+    if (path === '/reports/report-1/revisions/1/incidents' && method === 'POST') {
+      const incident: Incident = { id: 'incident-1', revision_id: revision.id, created_by: 'agent', category: body.category, description: body.description, created_at: revision.created_at, attachments: [] };
+      incidents = [incident]; return ok(incident, 201);
+    }
+    if (path === '/reports/report-1/revisions/1/incidents/incident-1/attachments' && method === 'POST') {
+      const file = (body as FormData).get('file') as File;
+      const photo = { id: 'photo-1', incident_id: 'incident-1', uploaded_by: 'agent', original_filename: file.name, media_type: file.type as 'image/jpeg', size_bytes: file.size, sha256: 'b'.repeat(64), storage_provider: 'LOCAL' as const, created_at: revision.created_at };
+      incidents = [{ ...incidents[0], attachments: [photo] }]; return ok(photo, 201);
+    }
+    if (path === '/reports/report-1/revisions/1/incidents/incident-1/attachments/photo-1' && method === 'DELETE') { incidents = [{ ...incidents[0], attachments: [] }]; return ok(null, 204); }
     if (path.startsWith('/reports/report-1/revisions/1/')) {
       if (forceConflict) return ok({ detail: 'Version obsolète : rechargez le PV.' }, 409);
       if (path.endsWith('/results')) revision = { ...revision, ...body, edit_version: revision.edit_version + 1 };
@@ -137,6 +149,23 @@ test('le client API transmet les pièces en multipart sans forcer le Content-Typ
   expect(request?.body).toBe(data);
   expect(request?.headers).toMatchObject({ Accept: 'application/json', Authorization: 'Bearer token-agent' });
   expect(request?.headers).not.toHaveProperty('Content-Type');
+});
+test('un agent déclare un incident fictif et ajoute une photographie privée', async () => {
+  app('/app/pv/report-1'); const user = await login();
+  await screen.findByRole('heading', { name: 'Incidents constatés' });
+  await user.selectOptions(screen.getByLabelText('Catégorie d’incident'), 'MATERIAL');
+  await user.type(screen.getByLabelText('Description de l’incident'), 'Urne fictive endommagée pendant la préparation.');
+  await user.click(screen.getByRole('button', { name: 'Déclarer l’incident' }));
+  expect(await screen.findByText('Urne fictive endommagée pendant la préparation.')).toBeInTheDocument();
+
+  const photo = new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], 'incident.jpg', { type: 'image/jpeg' });
+  await user.upload(screen.getByLabelText('Photographie — Matériel'), photo);
+  const photoInput = screen.getByLabelText('Photographie — Matériel');
+  fireEvent.submit(photoInput.closest('form')!);
+  await waitFor(() => expect(calls.some(c => c.path.endsWith('/incidents/incident-1/attachments') && c.method === 'POST')).toBe(true));
+  const upload = calls.find(c => c.path.endsWith('/incidents/incident-1/attachments') && c.method === 'POST');
+  expect(upload?.body).toBeInstanceOf(FormData);
+  expect(await screen.findByText('incident.jpg')).toBeInTheDocument();
 });
 test('un conflit conserve les valeurs saisies et indique de recharger', async () => {
   forceConflict = true; app('/app/pv/report-1'); const user = await login(); await screen.findByLabelText('Bulletins déposés');
