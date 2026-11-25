@@ -294,7 +294,13 @@ Découpage contrôlé :
 5. **9.5 — Failover GCP vers AWS** : mécanisme techniquement pris en charge, synchronisation
    de version et essais contrôlés. Aucun automatisme ne sera revendiqué avant preuve réelle.
 6. **9.6 — Monitoring, sauvegardes et restauration** : journaux sans secrets, métriques,
-   alertes, RPO/RTO, sauvegardes et restauration isolée.
+   alertes, RPO/RTO, sauvegardes et restauration isolée. La préparation locale décrit désormais
+   les backups RDS/PITR et la récupération S3 dans le
+   [runbook de sauvegarde/restauration](security/phase-9-backup-restore.md) ; Terraform prévoit
+   déjà sept jours de rétention RDS et active le versioning S3. La procédure et les objectifs
+   RPO ≤ 5 min / RTO ≤ 4 h (PostgreSQL) et RTO ≤ 1 h (objet S3) restent des cibles non mesurées.
+   Aucun backup ou restore AWS n'a été exécuté ; validation des politiques d'accès, clés, coût
+   et exercices réels reportés jusqu'à disponibilité des responsables et de l'environnement.
 7. **9.7 — Tests de résilience et documentation** : pannes contrôlées, preuves, limites,
    procédures de retour et nettoyage.
 

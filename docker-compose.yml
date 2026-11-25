@@ -79,6 +79,11 @@ services:
   web:
     build:
       context: ./frontend
+    environment:
+      API_SCHEME: ${API_SCHEME:-http}
+      API_PRIMARY: ${API_PRIMARY:-api:8000}
+      API_BACKUP: ${API_BACKUP:-api:8000}
+      API_TLS_NAME: ${API_TLS_NAME:-localhost}
     ports:
       - "127.0.0.1:${WEB_PORT:-3000}:8080"
     depends_on:

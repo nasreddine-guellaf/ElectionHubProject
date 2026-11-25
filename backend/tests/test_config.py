@@ -5,6 +5,14 @@ import pytest
 from pydantic import ValidationError
 
 from app.config import Settings
+from app.schemas import HealthRead
+
+
+@pytest.mark.parametrize("environment", ["local", "test", "cloud"])
+def test_health_response_accepts_supported_environments(environment):
+    response = HealthRead(schema_version="0004_private_documents", environment=environment)
+
+    assert response.environment == environment
 
 
 @pytest.mark.parametrize("password", ["", "short", "replace-with-generated-local-password"])

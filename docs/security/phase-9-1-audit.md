@@ -100,6 +100,19 @@ basculement automatique.
 | SEC-16 | Faible | Bandit signale `urlopen` et les `assert` du smoke test. L'URL est limitée à `127.0.0.1`, donc B310 n'est pas exploitable ici ; les `assert` disparaissent avec `python -O`. | Remplacer les assertions par des échecs explicites ou documenter une exclusion ciblée. | Local |
 | SEC-17 | Faible | `README.md` annonce la migration `0003` alors que le code attend `0004_private_documents`. | Corriger la documentation pour éviter un diagnostic erroné. | Documentation locale |
 
+### Mise à jour monitoring du 25 novembre 2026
+
+- `HealthRead.environment` accepte maintenant `local`, `test` et `cloud`; le test de contrat
+  couvre les trois valeurs. Les vérifications PostgreSQL, Alembic et tables n'ont pas changé.
+- Nginx produit un log d'accès JSON sur stdout comprenant l'heure, la méthode, le statut HTTP,
+  `$upstream_addr`, `$upstream_status` et `$upstream_response_time`. URI, query string, en-têtes
+  et corps sont omis afin d'éviter l'enregistrement de secrets ou données électorales.
+- SEC-02 est corrigé dans le contrat local. Les contrôles runtime `/health` et syntaxe Nginx
+  restent à exécuter avec PostgreSQL et le moteur Docker.
+- Les valeurs initiales de sonde proposées (GET `/health`, 200, intervalle 30 s, timeout 5 s,
+  seuil 3, HTTPS public) sont documentées pour OCI/AWS, mais aucune sonde distante n'est créée.
+- Les sondes OCI actives ne pilotent pas directement le failover passif de ce Nginx.
+
 ## Résultats réellement observés
 
 | Vérification | Résultat |
