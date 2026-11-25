@@ -3,6 +3,17 @@ variable "enable_pv_runtime" {
   default = false
 }
 
+variable "pv_reserved_concurrency" {
+  type        = number
+  default     = 2
+  description = "Use -1 for manual qualification when the account has no reservable slots."
+
+  validation {
+    condition     = contains([-1, 2], var.pv_reserved_concurrency)
+    error_message = "Use 2 for normal operation or -1 to use the shared pool during manual qualification."
+  }
+}
+
 variable "account_a_rds_hostname" {
   type    = string
   default = ""
@@ -95,7 +106,7 @@ resource "aws_lambda_function" "pv_runtime" {
   source_code_hash               = filebase64sha256(local.pv_runtime_zip)
   memory_size                    = 256
   timeout                        = 60
-  reserved_concurrent_executions = 2
+  reserved_concurrent_executions = var.pv_reserved_concurrency
 
   lifecycle {
     precondition {

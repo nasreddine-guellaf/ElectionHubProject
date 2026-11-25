@@ -58,9 +58,10 @@ run "private_runtime_from_s3" {
   command = plan
 
   variables {
-    peering_active         = true
-    enable_pv_runtime      = true
-    account_a_rds_hostname = "electionhub-test.abcdefghijk.eu-north-1.rds.amazonaws.com"
+    peering_active          = true
+    enable_pv_runtime       = true
+    pv_reserved_concurrency = -1
+    account_a_rds_hostname  = "electionhub-test.abcdefghijk.eu-north-1.rds.amazonaws.com"
     pv_runtime_s3 = {
       bucket     = "electionhub-b-test-artifacts"
       key        = "pv/lambda_pv.zip"
@@ -70,6 +71,7 @@ run "private_runtime_from_s3" {
 
   assert {
     condition = (
+      aws_lambda_function.pv_runtime[0].reserved_concurrent_executions == -1 &&
       aws_lambda_function.pv_runtime[0].filename == null &&
       aws_lambda_function.pv_runtime[0].s3_bucket == var.pv_runtime_s3.bucket &&
       aws_lambda_function.pv_runtime[0].s3_key == var.pv_runtime_s3.key &&

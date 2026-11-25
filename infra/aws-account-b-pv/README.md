@@ -150,3 +150,16 @@ Generate a fresh preview using the runtime inputs above, plus
 a new name for review. If the function is still absent, expect only the
 Lambda and its retry configuration. Keep the staged version available through
 plan review and deployment. The S3 report notification remains off.
+
+### Recover from a rejected concurrency reservation
+
+If CreateFunction succeeds but PutFunctionConcurrency is rejected, Terraform
+can mark the created function as tainted. First verify the live function's
+state and update status, code checksum, role and VPC configuration with
+`aws lambda get-function-configuration`. Verify that the account and region
+match the plan. Check its reservation with `aws lambda get-function-concurrency`.
+If the returned function is active and matches the saved plan, review clearing
+the taint instead of replacing it. Generate a fresh preview with the same
+S3 artifact version and `-var 'pv_reserved_concurrency=-1'` to finish manual
+qualification using the account's shared pool. The default remains two
+reserved executions. Resolve capacity before enabling the report notification.
