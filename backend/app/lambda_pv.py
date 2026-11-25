@@ -209,6 +209,31 @@ def process_event(event: ObjectCreated, s3_client, connection) -> str:
     return persist_result(connection, event, failure)
 
 
+def rds_token_client(region: str):
+    role_arn = os.getenv("PV_RDS_ASSUME_ROLE_ARN")
+    if not role_arn:
+        return boto3.client("rds", region_name=region)
+
+    from botocore.config import Config
+
+    sts = boto3.client(
+        "sts",
+        region_name=region,
+        endpoint_url=f"https://sts.{region}.amazonaws.com",
+        config=Config(connect_timeout=2, read_timeout=3, retries={"total_max_attempts": 2}),
+    )
+    credentials = sts.assume_role(
+        RoleArn=role_arn, RoleSessionName="electionhub-pv", DurationSeconds=900
+    )["Credentials"]
+    return boto3.client(
+        "rds",
+        region_name=region,
+        aws_access_key_id=credentials["AccessKeyId"],
+        aws_secret_access_key=credentials["SecretAccessKey"],
+        aws_session_token=credentials["SessionToken"],
+    )
+
+
 @contextmanager
 def database_connection():
     import psycopg
@@ -227,7 +252,7 @@ def database_connection():
     if not ca_file.is_file():
         raise RuntimeError("POSTGRES_SSLROOTCERT is missing")
 
-    token = boto3.client("rds", region_name=region).generate_db_auth_token(
+    token = rds_token_client(region).generate_db_auth_token(
         DBHostname=host,
         Port=port,
         DBUsername=user,
@@ -274,6 +299,10 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, int]:
     events = parse_records(event, required_environment("S3_BUCKET"))
     if not events:
         return process_events(events, None, None)
+    if os.getenv("PV_REQUIRE_VERSION") == "true" and any(
+        item.version_id in (None, "null") for item in events
+    ):
+        raise ValueError("An S3 object version is required for every record")
     s3_client = boto3.client("s3", region_name=required_environment("AWS_REGION"))
     with database_connection() as connection:
         return process_events(events, s3_client, connection)

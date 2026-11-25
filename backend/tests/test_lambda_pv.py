@@ -290,3 +290,52 @@ def test_s3_destination_probe_never_opens_dependencies(monkeypatch, bucket):
     else:
         with pytest.raises(ValueError, match="Unexpected S3 test event"):
             lambda_pv.lambda_handler(event, None)
+
+
+def test_cross_account_database_signing_uses_regional_sts_and_session_credentials(monkeypatch):
+    role = "arn:aws:iam::749251635900:role/electionhub/ElectionHubAccountBPvDatabase"
+    monkeypatch.setenv("PV_RDS_ASSUME_ROLE_ARN", role)
+    calls = []
+
+    class Sts:
+        def assume_role(self, **kwargs):
+            assert kwargs == {
+                "RoleArn": role,
+                "RoleSessionName": "electionhub-pv",
+                "DurationSeconds": 900,
+            }
+            return {
+                "Credentials": {
+                    "AccessKeyId": "test-access-key",
+                    "SecretAccessKey": "test-secret",
+                    "SessionToken": "test-session",
+                }
+            }
+
+    def client(service, **kwargs):
+        calls.append((service, kwargs))
+        return Sts() if service == "sts" else object()
+
+    monkeypatch.setattr(lambda_pv.boto3, "client", client)
+    lambda_pv.rds_token_client("eu-north-1")
+    assert [service for service, _ in calls] == ["sts", "rds"]
+    assert calls[0][1]["endpoint_url"] == "https://sts.eu-north-1.amazonaws.com"
+    assert calls[1][1] == {
+        "region_name": "eu-north-1",
+        "aws_access_key_id": "test-access-key",
+        "aws_secret_access_key": "test-secret",
+        "aws_session_token": "test-session",
+    }
+
+
+@pytest.mark.parametrize("version", [None, "null"])
+def test_integrated_handler_rejects_unversioned_events_before_aws_calls(monkeypatch, version):
+    _, _, key, _ = fixture_data()
+    monkeypatch.setenv("S3_BUCKET", "private-bucket")
+    monkeypatch.setenv("PV_REQUIRE_VERSION", "true")
+    monkeypatch.setattr(
+        lambda_pv.boto3, "client", lambda *args, **kwargs: pytest.fail("client called")
+    )
+    event = {"Records": [s3_record("private-bucket", key, version_id=version)]}
+    with pytest.raises(ValueError, match="An S3 object version is required"):
+        lambda_pv.lambda_handler(event, None)
