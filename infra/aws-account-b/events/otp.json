@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "challenge_id": "12345678-1234-4234-8234-123456789abc",
+  "recipient_ref": "demo-otp",
+  "code": "012345"
+}

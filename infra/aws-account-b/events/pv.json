@@ -1,0 +1,32 @@
+{
+  "Records": [
+    {
+      "eventSource": "aws:s3",
+      "eventName": "ObjectCreated:Put",
+      "s3": {
+        "bucket": {
+          "name": "electionhub-synthetic"
+        },
+        "object": {
+          "key": "reports%2F22222222-2222-4222-8222-222222222222%2Frevisions%2F1%2F33333333-3333-4333-8333-333333333333.pdf",
+          "sequencer": "0001",
+          "versionId": "demo-version-1"
+        }
+      }
+    },
+    {
+      "eventSource": "aws:s3",
+      "eventName": "ObjectCreated:Put",
+      "s3": {
+        "bucket": {
+          "name": "electionhub-synthetic"
+        },
+        "object": {
+          "key": "reports%2F22222222-2222-4222-8222-222222222222%2Frevisions%2F1%2F33333333-3333-4333-8333-333333333333.pdf",
+          "sequencer": "0001",
+          "versionId": "demo-version-1"
+        }
+      }
+    }
+  ]
+}

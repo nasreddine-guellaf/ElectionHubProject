@@ -19,8 +19,6 @@ from urllib.parse import unquote_plus
 from uuid import UUID, uuid4
 
 import boto3
-import psycopg
-from psycopg.rows import dict_row
 
 OBJECT_KEY = re.compile(
     r"^reports/(?P<report>[0-9a-f-]{36})/revisions/(?P<revision>[1-9][0-9]*)/"
@@ -51,22 +49,36 @@ def required_environment(name: str) -> str:
 
 
 def parse_record(record: dict[str, Any], expected_bucket: str) -> ObjectCreated:
-    if record.get("eventSource") != "aws:s3":
+    if not isinstance(record, dict) or record.get("eventSource") != "aws:s3":
         raise ValueError("Only aws:s3 events are accepted")
-    event_name = str(record.get("eventName", ""))
-    if not event_name.startswith("ObjectCreated:"):
+    event_name = record.get("eventName")
+    if not isinstance(event_name, str) or not re.fullmatch(r"ObjectCreated:[A-Za-z]+", event_name):
         raise ValueError("Only ObjectCreated events are accepted")
 
-    s3 = record.get("s3") or {}
-    bucket = str((s3.get("bucket") or {}).get("name", ""))
-    object_data = s3.get("object") or {}
-    key = unquote_plus(str(object_data.get("key", "")))
+    s3 = record.get("s3")
+    if not isinstance(s3, dict):
+        raise ValueError("Missing S3 event details")
+    bucket_data, object_data = s3.get("bucket"), s3.get("object")
+    if not isinstance(bucket_data, dict) or not isinstance(object_data, dict):
+        raise ValueError("Missing S3 bucket or object details")
+    bucket = bucket_data.get("name")
     if bucket != expected_bucket:
         raise ValueError("Unexpected S3 bucket")
+    encoded_key = object_data.get("key")
+    sequencer = object_data.get("sequencer")
+    version_id = object_data.get("versionId")
+    if not isinstance(encoded_key, str):
+        raise ValueError("Missing S3 object key")
+    if not isinstance(sequencer, str) or not re.fullmatch(r"[0-9a-fA-F]+", sequencer):
+        raise ValueError("Missing or invalid S3 object sequencer")
+    if version_id is not None and (not isinstance(version_id, str) or not version_id):
+        raise ValueError("Invalid S3 object version")
+    key = unquote_plus(encoded_key)
     match = OBJECT_KEY.fullmatch(key)
     if match is None:
         raise ValueError("Unexpected S3 object key")
 
+    UUID(match.group("report"))
     document_id = UUID(match.group("document"))
     # S3 event notifications do not expose one universal event UUID. The
     # sequencer and version identify one mutation; hashing keeps the DB key short.
@@ -74,8 +86,8 @@ def parse_record(record: dict[str, Any], expected_bucket: str) -> ObjectCreated:
         "bucket": bucket,
         "event": event_name,
         "key": key,
-        "sequencer": object_data.get("sequencer"),
-        "version": object_data.get("versionId"),
+        "sequencer": sequencer,
+        "version": version_id,
     }
     event_id = (
         "s3:"
@@ -88,7 +100,7 @@ def parse_record(record: dict[str, Any], expected_bucket: str) -> ObjectCreated:
         event_name=event_name,
         bucket=bucket,
         key=key,
-        version_id=object_data.get("versionId"),
+        version_id=version_id,
         document_id=document_id,
     )
 
@@ -157,7 +169,7 @@ def persist_result(connection, event: ObjectCreated, failure: str | None) -> str
             INSERT INTO object_events (id, provider_event_id, document_id, event_name)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (provider_event_id) DO NOTHING
-            RETURNING id
+            RETURNING provider_event_id
             """,
             (uuid4(), event.event_id, event.document_id, event.event_name),
         ).fetchone()
@@ -185,7 +197,10 @@ def persist_result(connection, event: ObjectCreated, failure: str | None) -> str
 
 
 def process_record(record: dict[str, Any], expected_bucket: str, s3_client, connection) -> str:
-    event = parse_record(record, expected_bucket)
+    return process_event(parse_record(record, expected_bucket), s3_client, connection)
+
+
+def process_event(event: ObjectCreated, s3_client, connection) -> str:
     if event_already_processed(connection, event.event_id):
         return "duplicate"
     document = load_document(connection, event)
@@ -196,6 +211,9 @@ def process_record(record: dict[str, Any], expected_bucket: str, s3_client, conn
 
 @contextmanager
 def database_connection():
+    import psycopg
+    from psycopg.rows import dict_row
+
     region = required_environment("AWS_REGION")
     host = required_environment("POSTGRES_HOST")
     port = int(required_environment("POSTGRES_PORT"))
@@ -230,16 +248,32 @@ def database_connection():
         yield connection
 
 
-def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, int]:
-    expected_bucket = required_environment("S3_BUCKET")
-    records = event.get("Records")
+def parse_records(event: dict[str, Any], expected_bucket: str) -> list[ObjectCreated]:
+    if isinstance(event, dict) and event.get("Event") == "s3:TestEvent":
+        if (
+            event.get("Service") != "Amazon S3"
+            or event.get("Bucket") != expected_bucket
+            or "Records" in event
+        ):
+            raise ValueError("Unexpected S3 test event")
+        return []
+    records = event.get("Records") if isinstance(event, dict) else None
     if not isinstance(records, list) or not records:
         raise ValueError("At least one S3 record is required")
+    return [parse_record(record, expected_bucket) for record in records]
 
+
+def process_events(events: list[ObjectCreated], s3_client, connection) -> dict[str, int]:
     counts = {"processed": 0, "duplicate": 0, "failed": 0}
+    for event in events:
+        counts[process_event(event, s3_client, connection)] += 1
+    return counts
+
+
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, int]:
+    events = parse_records(event, required_environment("S3_BUCKET"))
+    if not events:
+        return process_events(events, None, None)
     s3_client = boto3.client("s3", region_name=required_environment("AWS_REGION"))
     with database_connection() as connection:
-        for record in records:
-            result = process_record(record, expected_bucket, s3_client, connection)
-            counts[result] += 1
-    return counts
+        return process_events(events, s3_client, connection)
