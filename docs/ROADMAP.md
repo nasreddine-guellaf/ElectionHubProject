@@ -151,6 +151,14 @@ Le runner SSM a appliqué Alembic sur la base vide jusqu'à `0005_incidents` et
 validé le login non propriétaire, TLS `verify-full`, le refus sans TLS et le refus de DDL.
 Il a ensuite été supprimé avec ses 13 ressources temporaires.
 
+OTP : `electionhub-otp` est active dans le compte A à Stockholm en mode mock.
+Les invocations AWS ont validé l'acceptation et les rejets attendus.
+L'adaptateur FastAPI v1 est testé avec PostgreSQL local, y compris la
+vérification du code et l'invalidation du challenge en cas d'échec. Le
+branchement du portail dépend d'une identité Oracle autorisée et d'un
+transport qui remet le code. Le contrôle du sandbox SNS est bloqué par une
+politique d'organisation dans A. Voir la [recette de la Lambda dans A](../infra/aws/README.md#account-a-otp-lambda).
+
 Voir [l'API documentaire de phase 5](api/phase-5.md) et le
 [rapport de vérification intermédiaire](testing/phase-5.md). La préparation AWS-3,
 les coûts et les gardes-fous sont détaillés dans le

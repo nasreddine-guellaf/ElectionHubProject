@@ -1,3 +1,4 @@
+import re
 import ssl
 from pathlib import Path
 from typing import Literal
@@ -22,6 +23,9 @@ class Settings(BaseSettings):
     citizen_otp_enabled: bool = False
     otp_hmac_key: SecretStr | None = None
     mock_sms_directory: Path = ROOT / ".local/sms"
+    otp_delivery_backend: Literal["local", "lambda"] = "local"
+    otp_lambda_function_arn: str = ""
+    otp_lambda_recipient_refs: dict[str, str] = Field(default_factory=dict)
     object_storage_backend: Literal["local", "s3"] = "local"
     local_object_directory: Path = ROOT / ".local/objects"
     object_upload_max_bytes: int = Field(default=10 * 1024 * 1024, ge=1024, le=25 * 1024 * 1024)
@@ -49,6 +53,15 @@ class Settings(BaseSettings):
             self.otp_hmac_key is None or len(self.otp_hmac_key.get_secret_value()) < 32
         ):
             raise ValueError("La simulation OTP exige un secret HMAC d'au moins 32 caractères.")
+        if self.otp_delivery_backend == "lambda":
+            arn = r"arn:aws:lambda:[a-z0-9-]+:[0-9]{12}:function:[A-Za-z0-9_-]{1,64}"
+            if not re.fullmatch(arn + r"(?::[A-Za-z0-9_-]{1,128})?", self.otp_lambda_function_arn):
+                raise ValueError("OTP_LAMBDA_FUNCTION_ARN doit contenir un ARN Lambda complet.")
+            if not self.otp_lambda_recipient_refs or any(
+                not recipient or not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}", ref)
+                for recipient, ref in self.otp_lambda_recipient_refs.items()
+            ):
+                raise ValueError("OTP_LAMBDA_RECIPIENT_REFS doit associer des références valides.")
         if self.object_storage_backend == "s3" and not self.s3_bucket:
             raise ValueError("S3_BUCKET est obligatoire lorsque le stockage S3 est activé.")
         rds_host = self.postgres_host.lower().endswith(

@@ -22,6 +22,7 @@ from app.models import PollingStation
 from app.object_storage import create_object_storage
 from app.otp_api import LocalSmsSender
 from app.otp_api import router as otp_router
+from app.otp_delivery import LambdaSmsSender
 from app.schemas import HealthRead, PollingStationPage, PollingStationRead
 from app.station_api import router as station_router
 from app.validation_api import router as validation_router
@@ -50,7 +51,12 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     )
     app.state.engine = db_engine
     app.state.settings = settings
-    app.state.sms_sender = LocalSmsSender(settings.mock_sms_directory)
+    if settings.citizen_otp_enabled and settings.otp_delivery_backend == "lambda":
+        app.state.sms_sender = LambdaSmsSender(
+            settings.otp_lambda_function_arn, settings.otp_lambda_recipient_refs
+        )
+    else:
+        app.state.sms_sender = LocalSmsSender(settings.mock_sms_directory)
     app.state.object_storage = create_object_storage(settings)
     app.include_router(domain_router)
     app.include_router(auth_router)

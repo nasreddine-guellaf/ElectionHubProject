@@ -72,7 +72,36 @@ réelle désactivée tant que le chemin retenu n'est pas qualifié.
 [Peering AWS](https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-basics.html) ·
 [Politique IAM RDS intercompte](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.IAMDBAuth.IAMPolicy.html)
 
-## FastAPI GCP et EC2 A → Lambda OTP B
+## FastAPI Oracle → Lambda OTP
+
+FastAPI dispose d'un adaptateur Lambda facultatif. Activer la génération OTP
+avec `CITIZEN_OTP_ENABLED=true` et une clé HMAC de 32 caractères minimum fournie
+via le mécanisme de secrets du service. Pour sélectionner la livraison Lambda,
+transmettre les variables suivantes au processus FastAPI. L'ARN ci-dessous
+identifie le déploiement mock vérifié dans le compte A.
+
+```dotenv
+OTP_DELIVERY_BACKEND=lambda
+OTP_LAMBDA_FUNCTION_ARN=arn:aws:lambda:eu-north-1:749251635900:function:electionhub-otp
+OTP_LAMBDA_RECIPIENT_REFS={"mock://DEMO-CITIZEN-01":"demo-otp"}
+```
+
+L'adaptateur utilise la région de l'ARN et la chaîne d'identité standard de
+Boto3. Pour Oracle, l'équipe doit qualifier un fournisseur
+d'identifiants temporaires renouvelables autorisé à invoquer cet ARN
+uniquement. Attendre la recette de cette identité et d'un transport qui livre
+le code avant d'activer l'adaptateur sur le portail. Le handler mock confirme
+l'acceptation et jette le code. Les tests locaux capturent le code en mémoire
+avec un faux client Lambda pour tester la vérification. Le profil local garde
+`OTP_DELIVERY_BACKEND=local` par défaut.
+
+Voir les [commandes de recette pour le compte A](../../infra/aws/README.md#account-a-otp-lambda).
+La vérification du sandbox SNS a rencontré
+un refus explicite de politique d'organisation dans A et a été signalée comme
+bloquée dans B. Garder le transport mock tant qu'un opérateur autorisé n'a pas
+qualifié le sandbox et une destination consentante.
+
+### Earlier AWS identity design for GCP and EC2
 
 Proposition pour GCP. Utiliser le service account dédié de Compute Engine pour
 obtenir un ID token Google, puis `AssumeRoleWithWebIdentity` vers un rôle
@@ -92,7 +121,7 @@ chemin réseau GCP→RDS. Garder les clés permanentes hors du projet et des wor
 
 ## Contrats de développement
 
-### OTP, proposition v1 à valider avant de coder l'adaptateur
+### OTP, contrat v1
 
 Dans le backend actuel, `POST /api/v1/auth/citizen/request-otp` crée le code à
 six chiffres et le challenge HMAC. `POST /api/v1/auth/citizen/verify-otp` vérifie

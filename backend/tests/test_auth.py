@@ -3,9 +3,11 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from io import BytesIO
 from uuid import UUID, uuid4
 
 import pytest
+from botocore.exceptions import ReadTimeoutError
 from fastapi.testclient import TestClient
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
@@ -15,6 +17,7 @@ from app.bootstrap_auth import DEMO_USERS, seed_citizen
 from app.config import ROOT, Settings
 from app.domain_models import AgentAssignment, UserReference, UserRole
 from app.main import create_app
+from app.otp_delivery import LambdaSmsSender
 from app.security import digest, issue_session, now, verify_password
 from app.seed_domain import seed_domain
 from tests.test_domain import (  # réutilise le jeu métier, pas de bypass des dépendances RBAC
@@ -502,6 +505,65 @@ def test_unknown_citizen_and_disabled_otp(otp_client, domain_client):
         ).status_code
         == 503
     )
+
+
+@pytest.mark.parametrize(
+    "outcome",
+    ["accepted", "provider_unavailable", "function_error", "read_timeout", "wrong_version"],
+)
+def test_citizen_otp_lambda_delivery(otp_client, domain_engine, monkeypatch, outcome):
+    arn = "arn:aws:lambda:eu-north-1:865579549007:function:electionhub-b-demo-otp"
+    settings = Settings(
+        app_env="test",
+        citizen_otp_enabled=True,
+        otp_hmac_key="test-only-hmac-secret-at-least-32-characters",
+        otp_delivery_backend="lambda",
+        otp_lambda_function_arn=arn,
+        otp_lambda_recipient_refs={"mock://DEMO-CITIZEN-01": "demo-otp"},
+    )
+    app = create_app(settings, engine=domain_engine)
+    calls = []
+
+    class StubLambda:
+        def invoke(self, **args):
+            assert args["FunctionName"] == arn
+            assert args["InvocationType"] == "RequestResponse"
+            calls.append(json.loads(args["Payload"]))
+            if outcome == "read_timeout":
+                raise ReadTimeoutError(endpoint_url="https://lambda.eu-north-1.amazonaws.com")
+            result = {"version": 1, "status": "accepted"}
+            if outcome == "provider_unavailable":
+                result["status"] = outcome
+            if outcome == "wrong_version":
+                result["version"] = True
+            response = {"StatusCode": 200, "Payload": BytesIO(json.dumps(result).encode())}
+            if outcome == "function_error":
+                response["FunctionError"] = "Unhandled"
+            return response
+
+    monkeypatch.setattr(LambdaSmsSender, "client", StubLambda())
+    with TestClient(app) as client:
+        known = client.post("/api/v1/auth/citizen/request-otp", json={"cin": "DEMO-CIN-0001"})
+        unknown = client.post("/api/v1/auth/citizen/request-otp", json={"cin": "DEMO-CIN-OTHER"})
+        assert known.status_code == unknown.status_code == 202
+        assert known.json()["message"] == unknown.json()["message"]
+        assert len(calls) == 1
+        challenge = known.json()["challenge_id"]
+        assert calls[0] == {
+            "version": 1,
+            "recipient_ref": "demo-otp",
+            "challenge_id": challenge,
+            "code": calls[0]["code"],
+        }
+        code = calls[0]["code"]
+        assert len(code) == 6 and code.isascii() and code.isdecimal()
+        if outcome == "accepted":
+            assert otp_verify(client, challenge, code).status_code == 200
+            assert otp_verify(client, challenge, code).status_code == 401
+        else:
+            with Session(domain_engine) as session:
+                assert session.get(OtpChallenge, UUID(challenge)).consumed
+            assert otp_verify(client, challenge, code).status_code == 401
 
 
 def test_concurrent_otp_use_only_one_session(otp_client, domain_engine):

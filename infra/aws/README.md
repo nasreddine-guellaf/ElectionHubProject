@@ -151,3 +151,30 @@ The exact bootstrap and cleanup sequence is documented in
 [`docs/infrastructure/aws-4b-rds-plan.md`](../../docs/infrastructure/aws-4b-rds-plan.md).
 The idempotency, IAM database authentication, packaging and future event test sequence are in
 [`docs/infrastructure/aws-5a-lambda-pv.md`](../../docs/infrastructure/aws-5a-lambda-pv.md).
+
+### Account A OTP Lambda
+
+`electionhub-otp` is active in `eu-north-1` in mock mode. Its execution role
+can write only to its own CloudWatch log group. FastAPI owns the challenge,
+code generation and verification. The Lambda validates the v1 payload and
+acknowledges synthetic delivery. The Oracle portal still uses its existing
+configuration while an authorized identity and a working delivery channel
+are pending.
+
+From the repository root, build the ZIP before planning with
+`enable_otp_lambda=true`. Keep the other live Account A settings in the plan.
+
+```powershell
+.\.venv\Scripts\python.exe -m zipfile -c .local/build/account-a-otp.zip backend/app/lambda_otp.py
+$event = '{"version":1,"challenge_id":"12345678-1234-4234-8234-123456789abc","recipient_ref":"demo-otp","code":"012345"}'
+$event | Set-Content .local/build/otp-demo.json -Encoding Ascii
+aws lambda invoke --profile electionhub-demo --region eu-north-1 `
+  --function-name electionhub-otp --invocation-type RequestResponse `
+  --cli-binary-format raw-in-base64-out --payload fileb://.local/build/otp-demo.json `
+  .local/build/otp-demo-response.json
+Get-Content .local/build/otp-demo-response.json
+```
+
+Expect invocation status `200`, no `FunctionError`, and an `accepted` payload
+with integer version `1`. An unknown recipient returns `recipient_not_allowed`.
+A malformed code returns `invalid_request`.

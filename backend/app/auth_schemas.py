@@ -86,9 +86,7 @@ class OtpRequest(Input):
 
 class OtpRequested(Read):
     challenge_id: UUID
-    message: str = (
-        "Si cette référence fictive est connue, un code a été envoyé au simulateur local."
-    )
+    message: str = "Si cette référence fictive est connue, un code de vérification a été demandé."
 
 
 class OtpVerify(Input):

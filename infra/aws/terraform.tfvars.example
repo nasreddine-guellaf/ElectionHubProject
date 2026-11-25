@@ -10,6 +10,8 @@ enable_test_runner = false
 # Third safety gate: Lambda PV and the bucket notification remain disabled until RDS exists.
 enable_pv_lambda = false
 
+enable_otp_lambda = false
+
 rds_engine_version         = "16.15"
 rds_instance_class         = "db.t4g.micro"
 rds_backup_retention_days  = 1

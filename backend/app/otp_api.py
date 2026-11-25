@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import logging
 import secrets
 from datetime import timedelta
 from pathlib import Path
@@ -17,7 +18,8 @@ from app.models import PollingStation
 from app.schemas import PollingStationRead
 from app.security import Authenticated, Db, audit, effective_role, issue_session, now, throttle
 
-router = APIRouter(prefix="/api/v1", tags=["Citoyen — OTP fictif local"])
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api/v1", tags=["Citoyen — OTP de démonstration"])
 
 
 class LocalSmsSender:
@@ -37,7 +39,7 @@ class LocalSmsSender:
 def otp_settings(request):
     settings = request.app.state.settings
     if not settings.citizen_otp_enabled:
-        raise HTTPException(503, "La simulation OTP locale n'est pas activée.")
+        raise HTTPException(503, "L'authentification OTP de démonstration n'est pas activée.")
     return settings
 
 
@@ -78,7 +80,7 @@ def request_otp(data: OtpRequest, request: Request, session: Db):
         except OSError:
             challenge.consumed = True
             session.commit()
-            raise HTTPException(503, "Le simulateur SMS est indisponible.") from None
+            logger.warning("OTP delivery could not be confirmed")
     return OtpRequested(challenge_id=challenge_id)
 
 
